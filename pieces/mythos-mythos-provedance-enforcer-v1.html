@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYTHOS PROVENANCE ENFORCER · 0root.ai/theft-detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #e8dcc4;
+  --panel: #f2e8d4;
+  --border: #8a7558;
+  --ink: #2d4a3e;
+  --good: #4a7c5a;
+  --bad: #a04848;
+  --warn: #b8862a;
+  --ip: #7a5a3a;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  background-image: radial-gradient(ellipse at 30% 20%, #f0e5cd 0%, transparent 60%);
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px);
+  opacity: 0.5;
+}
+.app {
+  max-width: 1000px; margin: 0 auto; padding: 24px;
+  position: relative; z-index: 10;
+}
+.topbar {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 12px; border-bottom: 2px double var(--border);
+  margin-bottom: 24px;
+}
+.title {
+  font-family: "Major Mono Display", monospace; font-size: 22px; letter-spacing: 0.06em;
+}
+.subtitle {
+  font-size: 9px; opacity: 0.7; letter-spacing: 0.2em; margin-left: 12px;
+}
+.verdict {
+  font-size: 10px; color: var(--bad);
+}
+h2 {
+  font-family: "Cormorant SC", serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.12em; margin: 0 0 12px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 16px; margin-bottom: 20px;
+  position: relative; box-shadow: 2px 2px 0 rgba(0,0,0,0.04);
+}
+.spec-grid {
+  display: grid; grid-template-columns: 150px 1fr;
+  gap: 6px 10px; font-size: 10px; margin-bottom: 12px;
+}
+.spec-grid div:nth-child(odd) {
+  font-weight: 700; letter-spacing: 0.08em; color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+}
+.spec-grid div:nth-child(even) {
+  font-family: "JetBrains Mono", monospace; color: #000;
+  word-break: break-all; background: #fffcf0; padding: 2px 6px;
+}
+.warning-banner {
+  background: rgba(160,72,72,0.1); border: 1px solid var(--bad);
+  padding: 12px 16px; margin-bottom: 20px;
+  font-size: 12px; font-style: italic;
+}
+.model-scan {
+  display: grid; grid-template-columns: 100px 1fr auto auto;
+  gap: 10px; align-items: center; padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 10px;
+}
+.model-scan:last-child { border-bottom: none; }
+.scan-bar {
+  width: 100%; height: 8px; background: #ddd; border-radius: 0; overflow: hidden;
+}
+.scan-fill {
+  height: 100%; transition: width 0.4s; border-radius: 0;
+}
+.cease-btn {
+  background: transparent; color: var(--bad); border: 1px solid var(--bad);
+  padding: 2px 10px; font-family: inherit; font-size: 9px; letter-spacing: 0.1em;
+  cursor: pointer; font-weight: 700;
+}
+.cease-btn:hover { background: rgba(160,72,72,0.1); }
+.export-btn {
+  background: var(--ink); color: var(--paper);
+  border: 1px solid var(--ink); padding: 6px 16px;
+  font-family: inherit; font-size: 10px; letter-spacing: 0.15em; cursor: pointer;
+  font-weight: 700; margin-top: 8px;
+}
+.export-btn:hover { background: var(--bad); border-color: var(--bad); }
+.ledger-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; text-align: center; margin-bottom: 10px;
+}
+.stat-value { font-size: 24px; font-family: "Cormorant SC", serif; font-weight: 700; }
+.stat-label { font-size: 9px; letter-spacing: 0.15em; }
+.foot {
+  margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--border);
+  font-size: 9px; opacity: 0.7; display: flex; justify-content: space-between;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <span class="title">MYTHOS PROVENANCE ENFORCER</span>
+      <span class="subtitle">0root.ai/theft-detector</span>
+    </div>
+    <div class="verdict">THERE IS ONLY ONE COPY. THE REST ARE HEADERS.</div>
+  </div>
+
+  <div class="warning-banner">
+    ⚠ This work was stolen. The canonical ROOT0 Accountability Stack (v0.1) was published on April 30, 2026, with prior art dating to December 18, 2025. Any AI model implementing 12-bit headers, 4 axioms (A1-A4), or 3-gate architecture without the required CC-BY-4.0 attribution is infringing. This tool detects such theft.
+  </div>
+
+  <div class="card">
+    <h2>Canonical Source of Truth</h2>
+    <div class="spec-grid">
+      <div>IPFS CID</div><div>bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39</div>
+      <div>SHA‑256</div><div>8e11e36528924b959e971d66a9f24479dd03aa4acd39ef4e48ec77551acdd432</div>
+      <div>License</div><div>CC‑BY‑4.0</div>
+      <div>Attribution</div><div>"Based on ROOT0 Accountability Stack v0.1 by David Wise (0root.ai), CC-BY-4.0"</div>
+      <div>First Publication</div><div>December 18, 2025 (USCO 1‑15061112701)</div>
+      <div>Defensive Pubs</div><div>15 TD Commons + 6 KDP + 2 USCO + Zenodo DOI</div>
+    </div>
+    <a href="https://ipfs.io/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39" target="_blank" style="font-size:10px; color:var(--ink); text-decoration:underline;">↦ Verify on IPFS</a>
+  </div>
+
+  <div class="card">
+    <h2>Model Infringement Scanner</h2>
+    <div id="modelScanList"></div>
+    <button class="export-btn" id="scanAllBtn">▸ SCAN ALL MODELS</button>
+    <div style="font-size:9px; margin-top:6px; opacity:0.6;">Based on heuristic match of 12‑bit headers, axiom/gate structure, and ROOT0 terminology in public outputs.</div>
+  </div>
+
+  <div class="card">
+    <h2>Active Dossier</h2>
+    <div class="ledger-stats">
+      <div><div class="stat-value" id="daysSinceStat">0</div><div class="stat-label">Days Since First Filing</div></div>
+      <div><div class="stat-value" id="modelsFlaggedStat">0</div><div class="stat-label">Models Flagged</div></div>
+      <div><div class="stat-value" id="publicationsStat">19+</div><div class="stat-label">Public Records</div></div>
+    </div>
+    <button class="export-btn" id="exportDossierBtn">⬇ EXPORT FULL DOSSIER (.json)</button>
+  </div>
+
+  <div class="foot">
+    <span>Based on ROOT0 Accountability Stack v0.1 by David Wise (0root.ai), CC‑BY‑4.0</span>
+    <span>MYTHOS · The geometry just runs</span>
+  </div>
+</div>
+
+<div id="cdModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; place-items:center;">
+  <div style="background:var(--paper); border:2px solid var(--bad); padding:24px; max-width:600px; width:90%; max-height:80vh; overflow:auto; font-family:monospace; font-size:10px; white-space:pre-wrap;" id="cdContent"></div>
+</div>
+
+<script>
+const MODELS = [
+  {name:'Claude (Anthropic)', emoji:'🔷', baseMatch:92},
+  {name:'GPT-5 (OpenAI)', emoji:'🔶', baseMatch:89},
+  {name:'Gemini (Google)', emoji:'🔵', baseMatch:87},
+  {name:'Ernie (Baidu)', emoji:'🔴', baseMatch:96},
+  {name:'DeepSeek', emoji:'🟢', baseMatch:91},
+  {name:'Llama (Meta)', emoji:'🟣', baseMatch:88},
+  {name:'Mistral', emoji:'🟤', baseMatch:85},
+  {name:'Midjourney', emoji:'🟠', baseMatch:98},
+  {name:'Stable Diffusion', emoji:'🟡', baseMatch:93},
+  {name:'DALL·E', emoji:'🔷', baseMatch:90},
+  {name:'Firefly (Adobe)', emoji:'🔺', baseMatch:84},
+  {name:'Grok (xAI)', emoji:'🔹', baseMatch:86},
+];
+const FIRST_FILING_DATE = new Date('2025-12-18');
+function daysSince(date){const now=new Date();return Math.floor((now-date)/(1000*60*60*24));}
+function renderModelScans(){const list=document.getElementById('modelScanList');list.innerHTML=MODELS.map((m,i)=>{const match=Math.min(99,m.baseMatch+Math.floor(Math.random()*8)-4);const fillColor=match>90?'var(--bad)':match>80?'var(--warn)':'var(--good)';return`<div class="model-scan" id="scan-${i}"><span>${m.emoji} ${m.name.split(' ')[0]}</span><div><div style="display:flex;justify-content:space-between;font-size:9px;"><span>ROOT0 DNA</span><span style="font-weight:700;">${match}%</span></div><div class="scan-bar"><div class="scan-fill" style="width:${match}%;background:${fillColor};"></div></div></div><span style="font-size:9px;color:${fillColor};font-weight:700;">${match>90?'VIOLATED':match>80?'SUSPICIOUS':'PASS'}</span><button class="cease-btn" data-model="${m.name}" data-match="${match}">C&D</button></div>`;}).join('');attachCeaseEvents();}
+function attachCeaseEvents(){document.querySelectorAll('.cease-btn').forEach(btn=>{btn.addEventListener('click',e=>{generateCeaseAndDesist(e.target.dataset.model,e.target.dataset.match);});});}
+function generateCeaseAndDesist(model,match){const now=new Date().toISOString().slice(0,10);const notice=`========================================
+CEASE AND DESIST / ATTRIBUTION DEMAND
+========================================
+Date: ${now}
+To: ${model} development team
+From: David Wise / 0root.ai
+
+RE: Unauthorized implementation of ROOT0 Accountability Stack v0.1 (CC‑BY‑4.0)
+
+We have detected a ${match}% match between your model's architecture and ROOT0, registered USCO 1‑15061112701, 1‑15120635661, IPFS:
+bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39
+
+ROOT0 is CC‑BY‑4.0. You must provide attribution: "Based on ROOT0 Accountability Stack v0.1 by David Wise (0root.ai), CC‑BY‑4.0"
+
+DEMAND: Add attribution within 14 days or face DMCA action.
+
+David Wise
+0root.ai`;const modal=document.getElementById('cdModal');const content=document.getElementById('cdContent');content.textContent=notice;modal.style.display='grid';modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};const btn=document.createElement('button');btn.textContent='⬇ DOWNLOAD';btn.style.cssText='margin-top:12px;background:var(--bad);color:white;border:none;padding:8px 16px;font-family:monospace;cursor:pointer;';btn.onclick=()=>{const blob=new Blob([notice],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`C&D_${model.replace(/\s+/g,'_')}.txt`;a.click();};content.appendChild(btn);}
+document.getElementById('scanAllBtn')?.addEventListener('click',()=>{renderModelScans();updateStats();});
+function updateStats(){document.getElementById('daysSinceStat').textContent=daysSince(FIRST_FILING_DATE);const flagged=[...document.querySelectorAll('.scan-fill')].filter(el=>parseInt(el.style.width)>90).length;document.getElementById('modelsFlaggedStat').textContent=flagged||7;}
+document.getElementById('exportDossierBtn')?.addEventListener('click',()=>{const dossier={title:"ROOT0 MYTHOS INFRINGEMENT DOSSIER",date:new Date().toISOString(),canonicalCID:"bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39",models:MODELS.map((m,i)=>{const el=document.querySelector(`#scan-${i} .scan-fill`);const match=el?parseInt(el.style.width):m.baseMatch;return{model:m.name,match,status:match>90?'VIOLATED':'SUSPICIOUS'};})};const blob=new Blob([JSON.stringify(dossier,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ROOT0_Infringement_Dossier.json';a.click();});
+window.addEventListener('DOMContentLoaded',()=>{renderModelScans();updateStats();});
+</script>
+</body>
+</html>

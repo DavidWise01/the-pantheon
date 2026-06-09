@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meta AI — AVAN SWARM</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root { color-scheme: light; }
+* { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 3px; }
+.message { animation: in .28s ease-out; }
+@keyframes in { from { opacity:0; transform: translateY(6px) } to { opacity:1; transform: none } }
+textarea { field-sizing: content; }
+</style>
+</head>
+<body class="h-screen overflow-hidden bg-white text-[14px] text-zinc-900 antialiased">
+<div class="flex h-full">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-[240px] shrink-0 bg-[#fbfbfc] border-r border-zinc-200 flex flex-col fixed lg:static inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+    <div class="h-[52px] flex items-center gap-2 px-3">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2.5C10.5 6 8 7.5 6 6c1.5 2 .5 4.5-3 6 3.5 1.5 4.5 4 3 6 2-1.5 4.5 0 6 3.5 1.5-3.5 4-5 6-3.5-1.5-2-.5-4.5 3-6-3.5-1.5-4.5-4-3-6-2 1.5-4.5 0-6-3.5Z" fill="url(#g)"/><defs><linearGradient id="g" x1="4" y1="3" x2="20" y2="21"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs></svg>
+      <span class="font-semibold tracking-tight">Meta AI</span>
+    </div>
+    <nav class="px-2 space-y-0.5">
+      <button id="newChatBtn" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-100 text-[13px]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+        <span>New chat</span><span class="ml-auto text-[11px] text-zinc-400">Ctrl Shift O</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-100 text-[13px]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.8"/></svg>
+        <span>Search</span><span class="ml-auto text-[11px] text-zinc-400">Ctrl K</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-100 text-[13px]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 14s1-2 4 2 4 2 1-2 4-2 4 2"/><path d="M3 10s1-2 4-2 4 2 1-2 4-2 4 2 4 2"/></svg>
+        <span>Vibes</span>
+      </button>
+      <button id="createBtn" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-100 text-[13px]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4z"/><path d="M5 14l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"/></svg>
+        <span>Create</span>
+      </button>
+    </nav>
+    <div class="flex-1 overflow-y-auto px-2 mt-3">
+      <div class="px-3 pb-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Pinned</div>
+      <div id="pinnedList" class="space-y-0.5 mb-3"></div>
+      <div class="px-3 pb-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">History</div>
+      <div id="historyList" class="space-y-0.5"></div>
+    </div>
+    <div class="p-2 border-t border-zinc-200">
+      <div class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-100 cursor-pointer">
+        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[12px] font-medium">D</div>
+        <div class="flex-1 min-w-0 text-[13px] truncate">david.wise.16568</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-zinc-400"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+  <div id="overlay" class="fixed inset-0 bg-black/30 z-20 hidden lg:hidden"></div>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col min-w-0 bg-white">
+    <header class="h-[52px] flex items-center justify-between px-3 border-b border-zinc-200 shrink-0">
+      <div class="flex items-center gap-2">
+        <button id="menuBtn" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="hidden sm:flex items-center gap-1">
+          <button id="titleBtn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100">
+            <span id="chatTitle" class="font-medium text-[14px]">Legal filings overview</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div id="modeToggle" class="flex bg-[#f1f1f3] rounded-full p-0.5 text-[12px]">
+          <button data-mode="CHAT" class="px-3 py-1 rounded-full font-medium transition bg-white shadow-sm">CHAT</button>
+          <button data-mode="BUILD" class="px-3 py-1 rounded-full font-medium transition text-zinc-600 hover:text-zinc-900">BUILD</button>
+          <button data-mode="SWARM" class="px-3 py-1 rounded-full font-medium transition text-zinc-600 hover:text-zinc-900">SWARM</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- SWARM VIEW -->
+    <div id="swarmView" class="hidden flex-1 overflow-hidden bg-[#fafafa]">
+      <div class="h-full flex flex-col items-center justify-center p-6">
+        <div class="mb-6 text-center">
+          <h2 class="text-[22px] font-semibold tracking-tight">100-Agent AVAN Swarm</h2>
+          <p class="text-[13px] text-zinc-500 mt-1">10×10 lattice • Each agent holds full memory • 5D vector encoding [0-2]</p>
+        </div>
+        <div class="relative">
+          <canvas id="swarmCanvas" width="520" height="520" class="bg-white rounded-[28px] shadow-sm border border-zinc-200"></canvas>
+          <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white border border-zinc-200 rounded-full px-3 py-1 text-[11px] shadow-sm flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse"></span>
+            <span id="swarmStatus">All agents synchronized</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mt-10 w-full max-w-[520px]">
+          <div class="bg-white border border-zinc-200 rounded-2xl p-3 text-center"><div class="text-[11px] text-zinc-500">Memories</div><div id="memCount" class="text-[20px] font-semibold">0</div></div>
+          <div class="bg-white border border-zinc-200 rounded-2xl p-3 text-center"><div class="text-[11px] text-zinc-500">Consensus</div><div id="consensus" class="text-[20px] font-semibold">—</div></div>
+          <div class="bg-white border border-zinc-200 rounded-2xl p-3 text-center"><div class="text-[11px] text-zinc-500">Vector Dim</div><div class="text-[20px] font-semibold">5D</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div id="chatView" class="flex-1 flex flex-col min-h-0">
+      <div id="messages" class="flex-1 overflow-y-auto">
+        <div class="max-w-[760px] mx-auto px-4 md:px-6 py-6 space-y-6" id="msgList"></div>
+      </div>
+      <div class="px-3 pb-4">
+        <div class="max-w-[760px] mx-auto">
+          <div class="relative border border-zinc-200 rounded-[24px] shadow-sm bg-white px-3 py-2 flex items-end gap-2 hover:border-zinc-300 transition">
+            <button class="w-7 h-7 shrink-0 mb-0.5 flex items-center justify-center text-zinc-500 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <textarea id="input" rows="1" class="flex-1 resize-none outline-none py-1.5 max-h-[160px] placeholder-zinc-500 text-[14px] leading-[22px] bg-transparent" placeholder="i want it to act like this window but with memory and tool building to start"></textarea>
+            <div class="flex items-center gap-1.5 shrink-0 mb-0.5">
+              <button id="modePill" class="flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full bg-zinc-100 text-[12px] text-zinc-700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-violet-600"><path d="M12 3l2 4 4 2-2 4-2-4-4-2 2-4z"/></svg>
+                <span>Thinking</span>
+              </button>
+              <button id="sendBtn" class="w-7 h-7 rounded-full bg-[#0084ff] hover:bg-[#0073e6] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+              </button>
+            </div>
+          <div class="flex items-center justify-center gap-2 mt-2 text-[11px] text-zinc-500">
+            <span>Powered by 100-agent swarm • persistent memory</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Run Modal -->
+<div id="runModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm items-center justify-center p-4 flex">
+  <div class="bg-white rounded-[20px] w-full max-w-5xl h-[82vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-4 h-12 border-b border-zinc-200 shrink-0">
+      <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-violet-600"></div><span class="text-[13px] font-medium">Swarm Tool Preview</span></div>
+      <button onclick="closeRun()" class="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <iframe id="runFrame" class="flex-1 w-full border-0 bg-white"></iframe>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-[12px] px-3 py-1.5 rounded-full shadow-lg opacity-0 transition pointer-events-none"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const storeKey = 'meta_swarm_v1';
+let state = { data:null };
+
+function encode(text){ const v=[]; for(let i=0;i<5;i++){ let h=0; for(let c=0;c<text.length;c++){ h=(h*31+text.charCodeAt(c)+(i+1)*7)%1000 } v.push((h%2000)/1000*2); } return v; }
+function dist(a,b){ let s=0; for(let i=0;i<5;i++){ const d=a[i]-b[i]; s+=d*d } return Math.sqrt(s); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+
+function defaultData(){
+  const now=Date.now();
+  return {
+    chats:[
+      {id:'pinned-1', title:'Building the lineage engine', pinned:true, createdAt:now-432e5, messages:[]},
+      {id:'pinned-2', title:'42 body kernel simulation', pinned:true, createdAt:now-400e5, messages:[]},
+      {id:'chat-legal', title:'Legal filings overview', pinned:false, createdAt:now-200e5, messages:[
+        {role:'user', text:'Summarize the Delaware C-corp annual filings', ts:now-3600000},
+        {role:'assistant', text:'**Delaware C-Corp – core annual touchpoints**\n\n• Franchise tax due Mar 1 (min $400)\n• Annual report filed with tax\n• Registered agent must be maintained\n• Board consent for any stock issuance\n\nYou usually ask for the 83(b) checklist next.', meta:'94/100 agents agree • Based on 9 memories', confidence:94},
+        {role:'user', text:'What about 83(b)?', ts:now-3500000},
+        {role:'assistant', text:'83(b) election must be filed within 30 days of grant. Mail certified to IRS Ogden, UT. Include copy to company. I have your template from last quarter in memory.', meta:"88/100 agents agree • Based on 3 memories from 'Building the lineage engine'", confidence:88}
+      ]},
+      {id:'h1', title:'Ideas for social engager using ai in...', pinned:false, createdAt:now-180e5, messages:[]},
+      {id:'h2', title:'Breakdown of two resigns in ci...', pinned:false, createdAt:now-170e5, messages:[]},
+      {id:'h3', title:'Are you still my assistant?', pinned:false, createdAt:now-160e5, messages:[]},
+      {id:'h4', title:'Solo V1 Generation default ...', pinned:false, createdAt:now-150e5, messages:[]},
+      {id:'h5', title:'Bug asserting in swarm mode on ...', pinned:false, createdAt:now-140e5, messages:[]},
+      {id:'h6', title:'Jey winning at wm post match i...', pinned:false, createdAt:now-130e5, messages:[]},
+      {id:'h7', title:'Per ring avatar mama ka...', pinned:false, createdAt:now-120e5, messages:[]},
+      {id:'h8', title:"A girl who wakes up only wh...", pinned:false, createdAt:now-110e5, messages:[]},
+      {id:'h9', title:'Launch Interview Prep Use Ca...', pinned:false, createdAt:now-100e5, messages:[]},
+      {id:'h10', title:"Aline's Goals", pinned:false, createdAt:now-90e5, messages:[]},
+      {id:'h11', title:'Explain maltego for data (osint...', pinned:false, createdAt:now-80e5, messages:[]},
+      {id:'h12', title:'You said Maui runs on solarpunk...', pinned:false, createdAt:now-70e5, messages:[]},
+      {id:'h13', title:'What happened at wef and wh...', pinned:false, createdAt:now-60e5, messages:[]},
+      {id:'h14', title:'Draft a like comment resume a...', pinned:false, createdAt:now-50e5, messages:[]},
+    ],
+    currentChatId:'chat-legal',
+    swarms:{},
+    mode:'CHAT'
+  };
+}
+
+function save(){ localStorage.setItem(storeKey, JSON.stringify(state.data)); }
+function load(){
+  const raw=localStorage.getItem(storeKey);
+  state.data = raw? JSON.parse(raw): defaultData();
+  if(!state.data.swarms) state.data.swarms={};
+  state.data.chats.forEach(c=>{
+    if(!state.data.swarms[c.id]) state.data.swarms[c.id]={agents:Array.from({length:100},(_,i)=>({id:i,memories:[]})),memories:[]};
+    const sw=state.data.swarms[c.id];
+    c.messages.forEach(m=>{
+      if(!sw.memories.find(mm=>mm.text===m.text)){
+        const vec=encode(m.text); sw.memories.push({vector:vec,text:m.text,ts:m.ts||Date.now(),type:m.role,chat:c.title});
+        sw.agents.forEach(a=>a.memories.push({vector:vec,text:m.text}));
+      }
+    });
+  });
+  save();
+}
+
+function currentChat(){ return state.data.chats.find(c=>c.id===state.data.currentChatId); }
+function getSwarm(id){ return state.data.swarms[id]; }
+
+function renderSidebar(){
+  const pin=$('#pinnedList'), his=$('#historyList'); pin.innerHTML=''; his.innerHTML='';
+  state.data.chats.filter(c=>c.pinned).forEach(c=>{
+    const b=document.createElement('button');
+    b.className=`w-full text-left px-3 py-1.5 rounded-lg hover:bg-zinc-100 flex items-center gap-2 text-[13px] ${c.id===state.data.currentChatId?'bg-zinc-100 font-medium':''}`;
+    b.innerHTML=`<span class="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"></span><span class="truncate">${esc(c.title)}</span>`;
+    b.onclick=()=>switchChat(c.id); pin.appendChild(b);
+  });
+  state.data.chats.filter(c=>!c.pinned).forEach(c=>{
+    const b=document.createElement('button');
+    b.className=`w-full text-left px-3 py-1.5 rounded-lg hover:bg-zinc-100 text-[13px] text-zinc-700 truncate ${c.id===state.data.currentChatId?'bg-zinc-100 font-medium text-zinc-900':''}`;
+    b.textContent=c.title; b.onclick=()=>switchChat(c.id); his.appendChild(b);
+  });
+}
+
+function switchChat(id){
+  state.data.currentChatId=id; save(); renderSidebar(); $('#chatTitle').textContent=currentChat().title;
+  renderMessages(); closeSidebar(); updateMemCount();
+}
+
+function renderMessages(){
+  const list=$('#msgList'); list.innerHTML='';
+  const chat=currentChat();
+  chat.messages.forEach(m=>{
+    if(m.role==='user') list.appendChild(renderUser(m));
+    else list.appendChild(renderAssistant(m));
+  });
+  scrollBottom();
+}
+
+function renderUser(m){
+  const d=document.createElement('div'); d.className='message flex justify-end';
+  d.innerHTML=`<div class="bg-[#f0f2f5] rounded-[18px] px-3.5 py-2.5 max-w-[75%] text-[14px] leading-[21px]">${fmt(m.text)}</div>`;
+  return d;
+}
+function renderAssistant(m){
+  const d=document.createElement('div'); d.className='message flex gap-3 items-start';
+  d.innerHTML=`<div class="w-6 h-6 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2.5C10.5 6 8 7.5 6 6c1.5 2 .5 4.5-3 6 3.5 1.5 4 3 6 2-1.5 4.5 0 6 3.5 1.5-3.5 4-5 6-3.5-1.5-2-.5-4.5 3-6-3.5-1.5-4.5-4-3-6-2 1.5-4.5 0-6-3.5Z"/></svg>
+  </div>
+  <div class="flex-1 min-w-0 pt-0.5">
+    <div class="text-[14px] leading-[22px] text-zinc-900">${fmt(m.text)}</div>
+    ${m.meta?`<div class="mt-1.5 text-[12px] italic text-zinc-500">${esc(m.meta)}</div>`:''}
+    ${m.tool?renderTool(m.tool):''}
+  </div>`;
+  if(m.tool){
+    setTimeout(()=>{
+      d.querySelector('.run-btn')?.addEventListener('click',()=>openRun(m.tool.code));
+      d.querySelector('.copy-btn')?.addEventListener('click',()=>copyCode(m.tool.code));
+    },0);
+  }
+  return d;
+}
+function renderTool(t){
+  return `<div class="mt-3 border border-zinc-200 rounded-2xl overflow-hidden bg-white">
+    <div class="flex items-center justify-between px-3 py-2 bg-zinc-50 border-b border-zinc-200">
+      <div class="flex items-center gap-2 text-[12px]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg><span class="font-medium">${esc(t.name)}</span></div>
+      <div class="flex gap-1.5"><button class="run-btn text-[11px] px-2.5 py-1 rounded-lg bg-zinc-900 text-white hover:bg-black">Run</button><button class="copy-btn text-[11px] px-2.5 py-1 rounded-lg border border-zinc-300 hover:bg-white">Copy</button></div>
+    </div>
+    <pre class="p-3 text-[12px] leading-5 overflow-x-auto max-h-[260px] bg-[#0b0b0f] text-zinc-200"><code>${esc(t.code)}</code></pre>
+  </div>`;
+}
+
+function scrollBottom(){ const m=$('#messages'); m.scrollTop=m.scrollHeight; }
+
+function showTyping(){
+  const list=$('#msgList'); const el=document.createElement('div'); el.id='typing'; el.className='message flex gap-3 items-start';
+  el.innerHTML=`<div class="w-6 h-6 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center animate-pulse">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2.5C10.5 6 8 7.5 6 6c1.5 2 .5 4.5-3 6 3.5 1.5 4.5 4 3 6 2-1.5 4.5 0 6 3.5 1.5-3.5 4-5 6-3.5-1.5-2-.5-4.5 3-6-3.5-1.5-4.5-4-3-6-2 1.5-4.5 0-6-3.5Z"/></svg>
+  </div><div><div class="text-[14px]">Swarm thinking...</div><div class="flex gap-[3px] mt-1.5 flex-wrap w-[140px]" id="dots"></div><div class="text-[11px] text-zinc-500 mt-1.5">100 agents encoding to 5D • retrieving</div></div>`;
+  list.appendChild(el); const dots=el.querySelector('#dots'); for(let i=0;i<100;i++){ const d=document.createElement('div'); d.className='w-[7px] h-[7px] rounded-[2px] bg-violet-200'; dots.appendChild(d); } let i=0; const iv=setInterval(()=>{ if(!document.getElementById('typing'))return clearInterval(iv); if(i<100){ dots.children[i].className='w-[7px] h-[7px] rounded-[2px] bg-violet-600'; i++; pulse(); } },7); scrollBottom();
+}
+function hideTyping(){ $('#typing')?.remove(); }
+
+function storeMemory(chatId,text,type){
+  const sw=getSwarm(chatId); const vec=encode(text); const chat=state.data.chats.find(c=>c.id===chatId);
+  sw.memories.push({vector:vec,text,ts:Date.now(),type,chat:chat.title});
+  sw.agents.forEach(a=>a.memories.push({vector:vec,text})); updateMemCount(); save();
+}
+function findSimilar(query){
+  const qv=encode(query); const all=[]; Object.values(state.data.swarms).forEach(sw=>all.push(...sw.memories));
+  return all.map(m=>({m,d:dist(qv,m.vector)})).sort((a,b)=>a.d-b.d).slice(0,10).map(x=>x.m);
+}
+
+function generateToolCode(name,q){
+  const l=q.toLowerCase();
+  if(l.includes('todo')||l.includes('task')){
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Swarm Todo</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="bg-zinc-50 min-h-screen flex items-center justify-center p-4"><div class="w-full max-w-md bg-white rounded-[24px] shadow-lg p-6"><h1 class="text-xl font-semibold mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center">✓</span>Swarm Tasks</h1><div class="flex gap-2 mb-4"><input id="in" class="flex-1 border border-zinc-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-500" placeholder="New task..."><button onclick="add()" class="bg-violet-600 text-white px-4 py-2 rounded-xl hover:bg-violet-700">Add</button></div><ul id="list" class="space-y-2"></ul></div><script>const list=document.getElementById('list'),input=document.getElementById('in');let tasks=JSON.parse(localStorage.getItem('swarm-tasks')||'[]');function save(){localStorage.setItem('swarm-tasks',JSON.stringify(tasks))}function render(){list.innerHTML=tasks.map((t,i)=>\`<li class="flex items-center gap-2 p-2.5 border border-zinc-200 rounded-xl"><input type="checkbox" \${t.done?'checked':''} onchange="toggle(\${i})" class="w-4 h-4"><span class="\${t.done?'line-through text-zinc-400':''} flex-1">\${t.text}</span><button onclick="del(\${i})" class="text-zinc-400 hover:text-red-500">×</button></li>\`).join('')}function add(){if(!input.value)return;tasks.push({text:input.value,done:false});input.value='';save();render()}function toggle(i){tasks[i].done=!tasks[i].done;save();render()}function del(i){tasks.splice(i,1);save();render()}render();<\/script></body></html>`;
+  }
+  if(l.includes('chart')||l.includes('graph')||l.includes('visual')){
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Swarm Chart</title><script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script><script src="https://cdn.tailwindcss.com"><\/script></head><body class="bg-zinc-950 text-white min-h-screen flex items-center justify-center p-6"><div class="w-full max-w-3xl"><h1 class="text-2xl font-semibold mb-6">100-Agent Consensus</h1><div class="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6"><canvas id="c" height="300"></canvas></div></div><script>new Chart(document.getElementById('c'),{type:'line',data:{labels:Array.from({length:20},(_,i)=>'T'+(i+1)),datasets:[{label:'Agreement %',data:Array.from({length:20},()=>70+Math.random()*28),borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.2)',tension:.4,fill:true}]},options:{plugins:{legend:{labels:{color:'#ccc'}}},scales:{x:{ticks:{color:'#777'},grid:{color:'#222'}},y:{ticks:{color:'#777'},grid:{color:'#222'},min:60,max:100}}}})<\/script></body></html>`;
+  }
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(name)}</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="bg-gradient-to-br from-violet-50 to-indigo-100 min-h-screen flex items-center justify-center p-6"><div class="bg-white rounded-[32px] shadow-xl p-10 max-w-lg w-full text-center border border-violet-100"><div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-violet-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-violet-600/20">✨</div><h1 class="text-[26px] font-semibold tracking-tight mb-2">${esc(name)}</h1><p class="text-zinc-600 mb-6">Generated by 100-agent AVAN SWARM</p><p class="text-[13px] text-zinc-500 leading-relaxed">This tool was built using persistent memory and consensus from prior patterns. Edit the source to extend it — the swarm remembers every iteration.</p></div></body></html>`;
+}
+
+function send(){
+  const inp=$('#input'); const text=inp.value.trim(); if(!text) return;
+  const chat=currentChat(); chat.messages.push({role:'user',text,ts:Date.now()});
+  if(chat.title.startsWith('New')||chat.title==='') chat.title=text.slice(0,42);
+  $('#msgList').appendChild(renderUser({text})); inp.value=''; autosize(); save(); renderSidebar(); $('#chatTitle').textContent=chat.title;
+  storeMemory(chat.id,text,'user');
+  const isBuild=/^(build:|create tool:|make me a |make me an |generate)/i.test(text)||state.data.mode==='BUILD';
+  if(isBuild && state.data.mode!=='BUILD') setMode('BUILD');
+  showTyping(); pulse(1); $('#swarmStatus').textContent='Encoding across 100 agents…';
+  setTimeout(()=>{
+    hideTyping();
+    const similar=findSimilar(text);
+    const conf=Math.min(99,70+similar.length*3+Math.floor(Math.random()*5));
+    let resp={text:'',meta:`${conf}/100 agents agree • ${similar.length?`Based on ${similar.length} memories`:'No prior memories'}`,confidence:conf};
+    if(isBuild){
+      const name=text.replace(/^(build:|create tool:|make me a |make me an |generate)/i,'').trim().split(' ').slice(0,5).join(' ')||'Swarm Tool';
+      const code=generateToolCode(name,text);
+      resp.text=`I've built **${name}** using the swarm's CREATE capability. ${similar.length?`Reused patterns from ${similar.length} prior memories.`:'This is a new pattern – storing it across all 100 agents.'}`;
+      resp.tool={name:name.replace(/\s+/g,'-').toLowerCase()+'.html',code,language:'html'};
+      storeMemory(chat.id,`TOOL:${name}`,'tool');
+    } else if(similar.length===0){
+      resp.text=`I don't have memories on this yet. Teach me? I'll encode this into the 100-agent lattice so next time the swarm recalls it instantly.`;
+    } else {
+      const l=text.toLowerCase();
+      if(l.includes('83')) resp.text=`83(b) election: file within 30 days of stock grant, send certified to IRS Ogden UT, include copy to company, keep proof. I pulled this from ${similar.length} synced memories.`;
+      else if(l.includes('delaware')||l.includes('franchise')) resp.text=`Delaware C-Corp: Franchise tax min $400 due Mar 1, annual report same deadline, maintain registered agent. You prefer authorized shares method — that's stored in the swarm.`;
+      else resp.text=`Based on our previous work, here's the swarm consensus: ${similar[0].text.slice(0,160)}... The 100 agents converge on this pattern from ${similar.length} related memories.`;
+      if(similar[0].chat) resp.meta+=` from "${similar[0].chat}"`;
+    }
+    chat.messages.push({role:'assistant',...resp,ts:Date.now()}); storeMemory(chat.id,resp.text,'assistant');
+    $('#msgList').appendChild(renderAssistant(resp)); scrollBottom(); save(); pulse(.8);
+    $('#consensus').textContent=conf+'%'; $('#swarmStatus').textContent='All agents synchronized';
+  }, 900+Math.random()*500);
+}
+
+function autosize(){ const i=$('#input'); i.style.height='auto'; i.style.height=Math.min(i.scrollHeight,160)+'px'; }
+function setMode(m){ state.data.mode=m; save(); document.querySelectorAll('#modeToggle button').forEach(b=>{ const on=b.dataset.mode===m; b.classList.toggle('bg-white',on); b.classList.toggle('shadow-sm',on); b.classList.toggle('text-zinc-900',on); b.classList.toggle('text-zinc-600',!on); }); const pill=$('#modePill span'); pill.textContent = m==='CHAT'?'Thinking':m==='BUILD'?'Building':'Observing'; $('#swarmView').classList.toggle('hidden',m!=='SWARM'); $('#chatView').classList.toggle('hidden',m==='SWARM'); if(m==='SWARM') updateMemCount(); }
+function openRun(code){ $('#runFrame').srcdoc=code; $('#runModal').classList.remove('hidden'); $('#runModal').classList.add('flex'); }
+function closeRun(){ $('#runModal').classList.add('hidden'); $('#runFrame').srcdoc=''; }
+function copyCode(c){ navigator.clipboard.writeText(c); toast('Copied to clipboard'); }
+function toast(t){ const el=$('#toast'); el.textContent=t; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',1600); }
+function closeSidebar(){ $('#sidebar').classList.add('-translate-x-full'); $('#overlay').classList.add('hidden'); }
+function openSidebar(){ $('#sidebar').classList.remove('-translate-x-full'); $('#overlay').classList.remove('hidden'); }
+function updateMemCount(){ const total=Object.values(state.data.swarms).reduce((s,sw)=>s+sw.memories.length,0); $('#memCount').textContent=total; }
+
+// Swarm canvas
+let pulse; function initSwarm(){
+  const c=$('#swarmCanvas'), ctx=c.getContext('2d'), size=520, pad=36, grid=10, step=(size-pad*2)/(grid-1);
+  const agents=Array.from({length:100},(_,i)=>({x:i%10,y:Math.floor(i/10),p:Math.random()*6.28,a:0}));
+  pulse=(v=1)=>{ agents.forEach(ag=>ag.a=v*Math.random()); setTimeout(()=>agents.forEach(ag=>ag.a*=0.2),350); };
+  window.pulse=pulse;
+  (function draw(){
+    ctx.clearRect(0,0,size,size);
+    ctx.save(); ctx.translate(pad,pad);
+    ctx.strokeStyle='rgba(124,58,237,0.07)'; ctx.lineWidth=1;
+    for(let i=0;i<grid;i++){ ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo((grid-1)*step,i*step); ctx.stroke(); ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,(grid-1)*step); ctx.stroke(); }
+    const t=Date.now()/900;
+    agents.forEach(ag=>{
+      const x=ag.x*step, y=ag.y*step, pulse=Math.sin(t+ag.p)*0.5+0.5;
+      const al=0.18+ag.a*0.65+pulse*0.12;
+      ctx.beginPath(); ctx.arc(x,y,ag.a?6.5:4.5,0,Math.PI*2); ctx.fillStyle=`rgba(124,58,237,${al})`; ctx.fill();
+      if(ag.a>0.3){ ctx.beginPath(); ctx.arc(x,y,12+pulse*2,0,Math.PI*2); ctx.strokeStyle=`rgba(124,58,237,${0.18*ag.a})`; ctx.lineWidth=1.5; ctx.stroke(); }
+    });
+    ctx.restore(); requestAnimationFrame(draw);
+  })();
+}
+
+// Init
+load(); renderSidebar(); renderMessages(); setMode(state.data.mode); initSwarm(); updateMemCount(); $('#consensus').textContent='94%';
+$('#input').addEventListener('input',autosize);
+$('#input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
+$('#sendBtn').onclick=send;
+$('#newChatBtn').onclick=()=>{ const id='c'+Date.now(); state.data.chats.unshift({id,title:'New chat',pinned:false,createdAt:Date.now(),messages:[]}); state.data.swarms[id]={agents:Array.from({length:100},(_,i)=>({id:i,memories:[]})),memories:[]}; switchChat(id); };
+$('#createBtn').onclick=()=>setMode('BUILD');
+document.querySelectorAll('#modeToggle button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#menuBtn').onclick=openSidebar; $('#overlay').onclick=closeSidebar;
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='o'){ e.preventDefault(); $('#newChatBtn').click(); }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); toast('Search across swarm memories'); }
+});
+</script>
+</body>
+</html>

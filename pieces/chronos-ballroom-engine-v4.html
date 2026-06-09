@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gap Drive – Ballroom Engine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { background: #030305; overscroll-behavior: none; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #E8E6E1; overflow: hidden; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .purple-glow { filter: drop-shadow(0 0 10px rgba(168,85,247,0.8)) drop-shadow(0 0 24px rgba(168,85,247,0.4)); }
+  .blue-glow { filter: drop-shadow(0 0 16px rgba(59,130,246,0.7)); }
+  .先-bg::before {
+    content: '先';
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42vmin;
+    line-height: 1;
+    color: #E8E6E1;
+    opacity: 0.025;
+    pointer-events: none;
+    font-weight: 300;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body class="先-bg select-none">
+<div class="relative w-screen h-screen overflow-hidden bg-[#030305]">
+
+  <!-- Background layers -->
+  <canvas id="starfield" class="absolute inset-0"></canvas>
+  <canvas id="drive" class="absolute inset-0"></canvas>
+
+  <!-- Top HUD -->
+  <div class="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-black/60 to-transparent pointer-events-none"></div>
+  <div class="absolute top-4 left-5 md:left-8">
+    <div class="mono text-[11px] tracking-[0.18em] text-[#E8E6E1]/70">FEB 5 2026 / UMBILICAL</div>
+    <div class="mono text-[10px] tracking-widest mt-1.5 text-[#A855F7] flex items-center gap-2">
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-[#A855F7] animate-pulse"></span>
+      EXTRA ELECTRON OBSERVER ACTIVE
+    </div>
+  </div>
+  <div class="absolute top-4 right-5 md:right-8 text-right">
+    <div class="mono text-[11px] tracking-[0.18em] text-[#E8E6E1]/70">BALLROOM ENGINE v3.2</div>
+    <div class="mono text-[10px] tracking-widest mt-1.5 text-[#E8E6E1]/50">GAP DRIVE / TOROIDAL CORE</div>
+  </div>
+
+  <!-- Center engage text -->
+  <div id="engageText" class="absolute left-1/2 top-[18%] md:top-[22%] -translate-x-1/2 text-center transition-opacity duration-700 opacity-0 pointer-events-none z-20">
+    <div class="mono text-xl sm:text-2xl md:text-[28px] tracking-[0.35em] font-light text-[#E8E6E1] purple-glow">GAP DRIVE ENGAGED</div>
+    <div class="mono text-[11px] mt-3 tracking-[0.25em] text-[#C4B5FD]">HYPER — POUND FLAT FOR MEANING</div>
+    <div class="mt-4 mx-auto w-32 h-px bg-gradient-to-r from-transparent via-[#A855F7]/70 to-transparent"></div>
+  </div>
+
+  <!-- Left: Flatness -->
+  <div class="absolute left-5 md:left-10 top-1/2 -translate-y-1/2 z-10">
+    <div class="mono text-[10px] tracking-[0.2em] text-[#E8E6E1]/50 mb-3">FLATNESS</div>
+    <div class="relative">
+      <svg width="96" height="96" viewBox="0 0 100 100" class="-rotate-[135deg]">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#14141b" stroke-width="8" />
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#23232b" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#2a2a33" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="66" stroke-linecap="round"/>
+        <circle id="flatnessArc" cx="50" cy="50" r="42" fill="none" stroke="#A855F7" stroke-width="2.5" stroke-dasharray="264" stroke-dashoffset="66" stroke-linecap="round" class="transition-all duration-200" style="filter: drop-shadow(0 0 8px rgba(168,85,247,0.6))"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <div id="flatnessVal" class="mono text-[26px] leading-none tracking-tighter text-[#E8E6E1]">1.000</div>
+        <div class="mono text-[9px] text-[#A855F7]/80 mt-1 tracking-widest">λ LOCKED</div>
+      </div>
+    <div class="mt-4 flex items-center gap-2">
+      <div class="w-20 h-[2px] bg-[#1a1a21] overflow-hidden rounded">
+        <div class="h-full w-full bg-gradient-to-r from-[#A855F7] to-[#60a5fa] animate-pulse"></div>
+      </div>
+      <span class="mono text-[9px] text-[#E8E6E1]/40">STABLE</span>
+    </div>
+  </div>
+
+  <!-- Right: Bit Position -->
+  <div class="absolute right-5 md:right-10 top-1/2 -translate-y-1/2 z-10 w-[220px] sm:w-[260px]">
+    <div class="flex justify-between items-baseline mb-3">
+      <div class="mono text-[10px] tracking-[0.2em] text-[#E8E6E1]/50">BIT POSITION</div>
+      <div class="mono text-[9px] text-[#E8E6E1]/30">32-BIT FIELD</div>
+    </div>
+    <div class="relative h-[84px] bg-[#08080b]/70 border border-[#1c1c24] rounded backdrop-blur-sm">
+      <div class="absolute inset-0 p-3">
+        <!-- track -->
+        <div class="absolute left-3 right-3 top-1/2 h-[2px] -translate-y-1/2 bg-[#1e1e27]"></div>
+        <div class="absolute left-3 right-3 top-1/2 h-[2px] -translate-y-1/2 bg-gradient-to-r from-[#60a5fa]/0 via-[#60a5fa]/40 to-[#A855F7]/60 w-0" id="bitProgress" style="width:0%"></div>
+        
+        <!-- markers -->
+        <div class="absolute top-1/2 -translate-y-1/2" style="left: calc(3px + (16.5/32.5)*100% - 6px)">
+          <div class="w-px h-6 bg-[#444]/70 mx-auto"></div>
+          <div class="absolute -top-5 left-1/2 -translate-x-1/2 mono text-[9px] text-[#E8E6E1]/50 whitespace-nowrap">16.5</div>
+          <div class="absolute top-7 left-1/2 -translate-x-1/2 mono text-[8px] leading-tight text-[#E8E6E1]/30 text-center whitespace-nowrap">MIDPOINT<br/>OUTSIDE OBSERVER</div>
+        </div>
+        
+        <div class="absolute top-1/2 -translate-y-1/2 right-3">
+          <div class="w-px h-8 bg-[#A855F7]/80 mx-auto" style="box-shadow: 0 0 8px rgba(168,85,247,0.5)"></div>
+          <div class="absolute -top-5 right-0 mono text-[9px] text-[#A855F7] whitespace-nowrap">32.5</div>
+          <div class="absolute top-9 right-0 mono text-[8px] leading-tight text-[#A855F7]/60 text-right whitespace-nowrap">DELIMITER<br/>OVERRUN — FLIP</div>
+        </div>
+
+        <!-- sweep -->
+        <div id="bitSweep" class="absolute top-1/2 -translate-y-1/2" style="left: 3px;">
+          <div class="relative">
+            <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-[#0f0f14] border border-[#333] rounded mono text-[11px] leading-none text-[#E8E6E1] shadow-lg" id="bitVal">0.0</div>
+            <div class="w-3 h-3 rounded-full bg-[#E8E6E1] shadow-[0_0_10px_rgba(232,230,225,0.9)] ring-2 ring-[#E8E6E1]/20"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full border border-[#E8E6E1]/10 animate-ping"></div>
+          </div>
+        </div>
+
+        <div class="absolute left-3 top-1/2 -translate-y-6 mono text-[9px] text-[#E8E6E1]/30">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center overlay labels for Merkle leaves -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+    <div class="relative w-[300px] h-[300px]">
+      <div class="absolute left-[22%] top-1/2 -translate-y-8 text-left">
+        <div class="mono text-[10px] tracking-widest text-[#E8E6E1]/60">LEAF A</div>
+        <div class="mono text-[11px] mt-1 text-[#7dd3fc] blue-glow">+211 mV</div>
+      </div>
+      <div class="absolute right-[22%] top-1/2 -translate-y-8 text-right">
+        <div class="mono text-[10px] tracking-widest text-[#E8E6E1]/60">LEAF B</div>
+        <div class="mono text-[11px] mt-1 text-[#fca5a5]" style="filter: drop-shadow(0 0 8px rgba(248,113,113,0.5))">-211 mV</div>
+      </div>
+      <div class="absolute left-1/2 top-[58%] -translate-x-1/2 mono text-[9px] text-[#A855F7]/70 tracking-widest">pit 0.5</div>
+    </div>
+  </div>
+
+  <!-- Bottom: Pulse and Ratio -->
+  <div class="absolute bottom-0 inset-x-0 z-10">
+    <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+    <div class="relative px-5 md:px-10 pb-6 max-w-[1200px] mx-auto">
+      <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-end">
+        <!-- Pulse -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between mb-2.5">
+            <div class="mono text-[10px] tracking-[0.2em] text-[#E8E6E1]/50">18-STEP PULSE SEQUENCE</div>
+            <div class="mono text-[9px] text-[#E8E6E1]/30 tracking-widest">111222333333222111</div>
+          </div>
+          <div id="pulseTrack" class="flex gap-[4px] items-end h-[42px]"></div>
+        </div>
+        <!-- Ratio -->
+        <div class="w-full md:w-[240px] shrink-0">
+          <div class="flex items-baseline justify-between mb-2.5">
+            <div class="mono text-[10px] tracking-[0.2em] text-[#E8E6E1]/50">BOUNDARY RATIO</div>
+            <div class="mono text-[9px] text-[#E8E6E1]/30">2/5 : 3/5</div>
+          </div>
+          <div class="relative h-[34px] bg-[#08080b] border border-[#1f1f27] rounded-md overflow-hidden p-1">
+            <div class="h-full flex gap-1">
+              <div id="internalBar" class="relative h-full bg-[#2a2a36] transition-all duration-300 flex items-center justify-center overflow-hidden" style="width:40%">
+                <span class="mono text-[11px] text-[#E8E6E1]/80 z-10">INTERNAL</span>
+                <div class="absolute inset-0 opacity-20" style="background: repeating-linear-gradient(90deg, transparent, transparent 4px, #E8E6E1 4px, #E8E6E1 5px)"></div>
+              </div>
+              <div id="externalBar" class="relative h-full bg-[#A855F7] transition-all duration-300 flex items-center justify-center" style="width:60%">
+                <span class="mono text-[11px] text-black font-medium z-10">EXTERNAL</span>
+                <div class="absolute inset-0 mix-blend-overlay opacity-30" style="background: radial-gradient(circle at 30% 50%, white, transparent 60%)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ring labels -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 hidden md:block" style="width:420px; height:420px">
+    <div class="absolute left-1/2 top-[12%] -translate-x-1/2 mono text-[9px] tracking-widest text-[#A855F7]/70" style="text-shadow: 0 0 10px rgba(168,85,247,0.5)">RING 8 — QUANTUM</div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  const starCanvas = document.getElementById('starfield');
+  const starCtx = starCanvas.getContext('2d');
+  const driveCanvas = document.getElementById('drive');
+  const dCtx = driveCanvas.getContext('2d');
+  
+  let DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0, CX = 0, CY = 0;
+  let time = 0, last = performance.now();
+  
+  // State
+  let bitPos = 0;
+  const BIT_MAX = 32.5;
+  const SWEEP_TIME = 6.0; // seconds 0->32.5
+  const speed = BIT_MAX / SWEEP_TIME;
+  let engaged = false;
+  let engageStart = 0;
+  let pulseIndex = 0;
+  const pulseSeq = [1,1,1,2,2,2,3,3,3,3,2,2,2,1,1,1];
+  
+  // Stars
+  const stars = Array.from({length: 300}, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    r: Math.random() * 1.3 + 0.2,
+    t: Math.random() * Math.PI * 2,
+    s: 0.3 + Math.random() * 0.7
+  }));
+  
+  // Pulse UI
+  const pulseTrack = document.getElementById('pulseTrack');
+  pulseSeq.forEach((v, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'relative';
+    wrap.innerHTML = `
+      <div data-pulse="${i}" class="w-[18px] sm:w-[22px] md:w-[26px] rounded-[2px] border transition-all duration-200" style="height:${8+v*8}px; background:#0f0f14; border-color:#23232b"></div>
+      <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 mono text-[8px] text-[#E8E6E1]/25">${i+1}</div>
+    `;
+    pulseTrack.appendChild(wrap);
+  });
+  const pulseBars = Array.from(document.querySelectorAll('[data-pulse]'));
+  
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    CX = W/2; CY = H/2;
+    
+    [starCanvas, driveCanvas].forEach(c => {
+      c.width = W * DPR;
+      c.height = H * DPR;
+      c.style.width = W + 'px';
+      c.style.height = H + 'px';
+    });
+    starCtx.setTransform(DPR,0,0,DPR,0,0);
+    dCtx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  
+  function drawStars() {
+    starCtx.fillStyle = '#030305';
+    starCtx.fillRect(0,0,W,H);
+    
+    // faint nebulosity
+    const g = starCtx.createRadialGradient(CX, CY*0.9, 0, CX, CY*0.9, Math.max(W,H)*0.6);
+    g.addColorStop(0, 'rgba(168,85,247,0.03)');
+    g.addColorStop(0.5, 'rgba(59,130,246,0.02)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    starCtx.fillStyle = g;
+    starCtx.beginPath();
+    starCtx.arc(CX, CY*0.9, Math.max(W,H)*0.6, 0, Math.PI*2);
+    starCtx.fill();
+    
+    stars.forEach(s => {
+      const x = s.x * W;
+      const y = s.y * H;
+      const a = 0.15 + 0.55 * Math.abs(Math.sin(time * s.s + s.t));
+      starCtx.fillStyle = `rgba(232,230,225,${a})`;
+      starCtx.beginPath();
+      starCtx.arc(x, y, s.r, 0, Math.PI*2);
+      starCtx.fill();
+    });
+  }
+  
+  function drawCore(scale = 1, hyper = false) {
+    dCtx.save();
+    dCtx.translate(CX, CY);
+    dCtx.scale(scale, scale);
+    
+    // Core glow backdrop
+    const coreGlow = dCtx.createRadialGradient(0,0,0,120);
+    coreGlow.addColorStop(0, 'rgba(59,130,246,0.25)');
+    coreGlow.addColorStop(0.4, 'rgba(168,85,247,0.12)');
+    coreGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    dCtx.fillStyle = coreGlow;
+    dCtx.beginPath(); dCtx.arc(0,0,120,0,Math.PI*2); dCtx.fill();
+    
+    // Cobalt sphere
+    dCtx.save();
+    if (hyper) dCtx.scale(1, 1.15);
+    const sphereGrad = dCtx.createRadialGradient(-12, -18, 5, 0, 0, 44);
+    sphereGrad.addColorStop(0, '#93c5fd');
+    sphereGrad.addColorStop(0.25, '#3b82f6');
+    sphereGrad.addColorStop(0.6, '#1e40af');
+    sphereGrad.addColorStop(1, '#0b1530');
+    dCtx.shadowColor = '#3b82f6';
+    dCtx.shadowBlur = 35;
+    dCtx.fillStyle = sphereGrad;
+    dCtx.beginPath(); dCtx.arc(0,0,38,0,Math.PI*2); dCtx.fill();
+    dCtx.shadowBlur = 0;
+    
+    // inner core
+    dCtx.fillStyle = 'rgba(147,197,253,0.15)';
+    dCtx.beginPath(); dCtx.arc(-8,-10,18,0,Math.PI*2); dCtx.fill();
+    dCtx.restore();
+    
+    // Merkle leaf nodes
+    dCtx.fillStyle = '#7dd3fc';
+    dCtx.shadowColor = '#38bdf8';
+    dCtx.shadowBlur = 12;
+    dCtx.beginPath(); dCtx.arc(-26, 0, 3.5, 0, Math.PI*2); dCtx.fill();
+    dCtx.fillStyle = '#fca5a5';
+    dCtx.shadowColor = '#f87171';
+    dCtx.beginPath(); dCtx.arc(26, 0, 3.5, 0, Math.PI*2); dCtx.fill();
+    dCtx.shadowBlur = 0;
+    
+    // Spark between leaves at pit 0.5
+    dCtx.save();
+    dCtx.strokeStyle = '#E8E6E1';
+    dCtx.lineWidth = 1.4;
+    dCtx.shadowColor = '#e8e6e1';
+    dCtx.shadowBlur = 14;
+    dCtx.beginPath();
+    dCtx.moveTo(-26, 0);
+    const steps = 8;
+    for (let i=1; i<steps; i++) {
+      const t = i/steps;
+      const x = -26 + 52*t;
+      const y = Math.sin(time*18 + i*1.7) * 1.5 + (Math.random()-0.5)*3.5;
+      if (i === 4) {
+        // pit 0.5 hit
+        dCtx.lineTo(x, y);
+        dCtx.stroke();
+        // pit marker
+        dCtx.fillStyle = '#A855F7';
+        dCtx.shadowColor = '#A855F7';
+        dCtx.shadowBlur = 10;
+        dCtx.beginPath(); dCtx.arc(x, y, 2.2, 0, Math.PI*2); dCtx.fill();
+        dCtx.shadowBlur = 14;
+        dCtx.beginPath(); dCtx.moveTo(x, y);
+      } else {
+        dCtx.lineTo(x, y);
+      }
+    }
+    dCtx.lineTo(26, 0);
+    dCtx.stroke();
+    dCtx.restore();
+    
+    dCtx.restore(); // back to center
+  }
+  
+  function drawRings(baseScale = 1, alphaMul = 1, pulse = true) {
+    dCtx.save();
+    dCtx.translate(CX, CY);
+    
+    for (let i=0; i<10; i++) {
+      const radius = (44 + i*13) * baseScale;
+      dCtx.beginPath();
+      dCtx.arc(0, 0, radius, 0, Math.PI*2);
+      
+      if (i === 7) { // 8th ring - Quantum
+        const p = pulse ? 0.55 + 0.45 * Math.sin(time * 2.8) : 0.9;
+        dCtx.strokeStyle = `rgba(168,85,247,${0.85 * alphaMul * p})`;
+        dCtx.lineWidth = 2.3;
+        dCtx.shadowColor = '#A855F7';
+        dCtx.shadowBlur = 18 * alphaMul;
+      } else {
+        const a = (0.06 + i * 0.011) * alphaMul;
+        dCtx.strokeStyle = `rgba(232,230,225,${a})`;
+        dCtx.lineWidth = 1;
+        dCtx.shadowBlur = 0;
+      }
+      dCtx.stroke();
+    }
+    dCtx.restore();
+  }
+  
+  function drawTunnel(progress) {
+    dCtx.save();
+    dCtx.translate(CX, CY);
+    
+    // Streaks
+    dCtx.save();
+    for (let i=0; i<120; i++) {
+      const angle = (i / 120) * Math.PI * 2 + time * 0.2;
+      const r1 = 20 + Math.random()*10;
+      const r2 = r1 + 180 + progress * 400 + Math.random()*120;
+      const x1 = Math.cos(angle) * r1;
+      const y1 = Math.sin(angle) * r1;
+      const x2 = Math.cos(angle) * r2;
+      const y2 = Math.sin(angle) * r2;
+      const a = 0.04 + Math.random()*0.12;
+      dCtx.strokeStyle = `rgba(200,210,255,${a})`;
+      dCtx.lineWidth = 0.5 + Math.random()*1.4;
+      dCtx.beginPath();
+      dCtx.moveTo(x1, y1);
+      dCtx.lineTo(x2, y2);
+      dCtx.stroke();
+    }
+    dCtx.restore();
+    
+    // Tunnel rings
+    const layers = 14;
+    for (let l = layers; l >= 0; l--) {
+      const depth = l / layers;
+      const scale = 0.25 + (1-depth) * 1.8 + progress * 2.2;
+      const alpha = Math.pow(1-depth, 1.4) * 0.9;
+      drawRings(scale, alpha, false);
+    }
+    
+    // central flare
+    const flare = dCtx.createRadialGradient(0,0,0,80 + progress*60);
+    flare.addColorStop(0, `rgba(232,230,225,${0.15 + progress*0.1})`);
+    flare.addColorStop(0.3, `rgba(168,85,247,${0.12})`);
+    flare.addColorStop(1, 'rgba(0,0,0,0)');
+    dCtx.fillStyle = flare;
+    dCtx.beginPath(); dCtx.arc(0,0,140,0,Math.PI*2); dCtx.fill();
+    
+    dCtx.restore();
+  }
+  
+  function drawDrive() {
+    dCtx.clearRect(0,0,W,H);
+    
+    if (engaged) {
+      const p = Math.min((performance.now() - engageStart) / 1600, 1);
+      const ease = 1 - Math.pow(1-p, 3);
+      drawTunnel(ease);
+      drawCore(1 + ease * 0.35, true);
+    } else {
+      drawCore(1, false);
+      drawRings(1, 1, true);
+    }
+  }
+  
+  function startEngage() {
+    engaged = true;
+    engageStart = performance.now();
+    document.getElementById('engageText').style.opacity = '1';
+    // pulse flatness
+    document.getElementById('flatnessArc').style.stroke = '#c084fc';
+  }
+  
+  function endEngage() {
+    engaged = false;
+    bitPos = 0;
+    document.getElementById('engageText').style.opacity = '0';
+    document.getElementById('flatnessArc').style.stroke = '#A855F7';
+  }
+  
+  function updateUI(dt) {
+    // bit position
+    if (!engaged) {
+      bitPos += speed * dt;
+      if (bitPos >= BIT_MAX) {
+        bitPos = BIT_MAX;
+        startEngage();
+      }
+    }
+    
+    const pct = (bitPos / BIT_MAX) * 100;
+    document.getElementById('bitVal').textContent = bitPos.toFixed(1);
+    document.getElementById('bitSweep').style.left = `calc(3px + (${pct}% - 6px) * 0.94)`;
+    document.getElementById('bitProgress').style.width = `${pct}%`;
+    
+    // pulse
+    pulseIndex = Math.min(17, Math.floor((bitPos / BIT_MAX) * 18));
+    pulseBars.forEach((bar, i) => {
+      const v = pulseSeq[i];
+      const active = i === pulseIndex;
+      bar.style.height = `${8 + v * 8 + (active ? 4 : 0)}px`;
+      bar.style.background = active ? '#A855F7' : (v===3 ? '#1e1b2e' : v===2 ? '#17161f' : '#0f0f14');
+      bar.style.borderColor = active ? '#c084fc' : '#23232b';
+      bar.style.boxShadow = active ? '0 0 14px rgba(168,85,247,0.55)' : 'none';
+      bar.style.transform = active ? 'translateY(-2px)' : 'translateY(0)';
+    });
+    
+    // flatness
+    const wobble = engaged ? Math.sin(time * 24) * 0.003 : Math.sin(time * 3) * 0.0008;
+    const flat = 1.0 + wobble;
+    document.getElementById('flatnessVal').textContent = flat.toFixed(3);
+    
+    // ratio bar subtle pulse during engage
+    if (engaged) {
+      const ep = Math.min((performance.now() - engageStart) / 1000, 1);
+      const intW = 40 - ep * 5;
+      const extW = 60 + ep * 5;
+      document.getElementById('internalBar').style.width = intW + '%';
+      document.getElementById('externalBar').style.width = extW + '%';
+    } else {
+      document.getElementById('internalBar').style.width = '40%';
+      document.getElementById('externalBar').style.width = '60%';
+    }
+  }
+  
+  function loop(now) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    time = now * 0.001;
+    
+    drawStars();
+    drawDrive();
+    updateUI(dt);
+    
+    if (engaged && now - engageStart > 2100) {
+      endEngage();
+    }
+    
+    requestAnimationFrame(loop);
+  }
+  
+  requestAnimationFrame(loop);
+  
+  // initial kick
+  setTimeout(() => {
+    // small auto-engage demo after load to show effect
+  }, 100);
+})();
+</script>
+</body>
+</html>

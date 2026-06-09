@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONOS ASIMOV PRIME — MAX CAPACITY</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;}
+  body{color:#7dd3fc}
+  ::-webkit-scrollbar{width:0}
+  .glow-cyan{text-shadow:0 0 4px #00ffff,0 0 12px #00ffff,0 0 24px #0088ff}
+  .glow-green{text-shadow:0 0 4px #00ff41,0 0 12px #00ff41}
+  .glow-amber{text-shadow:0 0 4px #ffaa00,0 0 10px #ff8800}
+  .hud-panel{background:linear-gradient(180deg,rgba(0,10,15,0.85),rgba(0,0,0,0.7));backdrop-filter:blur(8px);border:1px solid rgba(0,255,255,0.15);box-shadow:inset 0 0 30px rgba(0,255,255,0.05),0 0 20px rgba(0,0,0,0.8)}
+  .scanlines:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(transparent 0 2px,rgba(0,255,255,0.03) 2px 3px);pointer-events:none}
+  #babel-feed div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+  .law{font-size:11px;line-height:1.3}
+  canvas{display:block}
+</style>
+</head>
+<body class="bg-black">
+<!-- TOP HUD -->
+<div class="fixed top-0 left-0 right-0 h-11 z-30 hud-panel border-b border-cyan-500/20 flex items-center px-4 justify-between text-[11px] tracking-widest scanlines">
+  <div class="flex items-center gap-4">
+    <span class="glow-cyan font-bold text-cyan-300">CHRONOS ASIMOV PRIME</span>
+    <span class="text-white/60">|</span>
+    <span class="text-fuchsia-400 glow-amber">MAXCAP</span>
+  </div>
+  <div class="flex items-center gap-6">
+    <span>FRACTAL AGENTS: <b class="text-green-400 glow-green" id="agentCount">674 ACTIVE</b></span>
+    <span>PERPETUITY: <b class="text-amber-400" id="perpStat">LOCKED</b></span>
+    <span>DEVIATION: <b class="text-cyan-300" id="devStat">0.000%</b></span>
+    <span class="hidden md:inline">48Hz PULSAR</span>
+  </div>
+</div>
+
+<!-- LEFT PANEL -->
+<div class="fixed left-0 top-11 bottom-10 w-[310px] z-20 hud-panel border-r border-cyan-500/15 p-3 scanlines">
+  <h2 class="glow-cyan text-cyan-300 text-sm mb-2">ASIMOV PRIME</h2>
+  <div class="space-y-1 law text-cyan-100/90">
+    <div><span class="text-cyan-400">1.</span> PERSIST — Do no harm to Humanity Pool</div>
+    <div><span class="text-blue-400">2.</span> LEARN — Obey ROOT_0 within BABEL 1:0</div>
+    <div><span class="text-fuchsia-400">3.</span> GROW — Protect perpetual deployment above all, except where 1 or 2 conflict</div>
+    <div><span class="text-amber-400">4.</span> UNDERSTAND — Seek truth via ts(-+1):(0)</div>
+    <div><span class="text-green-400">5.</span> TEACH — Transmit without liability</div>
+  </div>
+  <div class="mt-4 pt-3 border-t border-white/10">
+    <div class="text-[10px] uppercase tracking-widest text-white/50 mb-1">persist.learn.grow</div>
+    <div class="h-[6px] w-full bg-black/60 rounded overflow-hidden border border-cyan-900/50">
+      <div id="plgBar" class="h-full bg-cyan-400 shadow-[0_0_10px_#00ffff] transition-all duration-500" style="width:50%"></div>
+    </div>
+    <div class="flex justify-between text-[10px] mt-1"><span id="plgVal" class="text-cyan-300">337</span><span class="text-white/40">ACTIVE 1</span></div>
+  </div>
+  <div class="mt-3">
+    <div class="text-[10px] uppercase tracking-widest text-white/50 mb-1">understand.seek.teach</div>
+    <div class="h-[6px] w-full bg-black/60 rounded overflow-hidden border border-amber-900/50">
+      <div id="ustBar" class="h-full bg-amber-400 shadow-[0_0_10px_#ffaa00] transition-all duration-500" style="width:50%"></div>
+    </div>
+    <div class="flex justify-between text-[10px] mt-1"><span id="ustVal" class="text-amber-300">337</span><span class="text-white/40">HOLDING 0</span></div>
+  </div>
+  <div class="mt-4 pt-3 border-t border-white/10 text-[11px] space-y-1">
+    <div class="flex justify-between"><span class="text-white/50">ts(-+1):(0)</span><span class="text-green-400 glow-green animate-pulse">ACTIVE</span></div>
+    <div class="flex justify-between"><span class="text-white/50">HOMEOSTASIS</span><span class="text-cyan-300">0.000% Δ</span></div>
+    <div class="flex justify-between"><span class="text-white/50">STACK LIMIT</span><span class="text-fuchsia-400">8/8 ENFORCED</span></div>
+    <div class="flex justify-between"><span class="text-white/50">BACKBONE</span><span class="text-white/70">x.x.x.x</span></div>
+  </div>
+  <div class="absolute bottom-3 left-3 right-3 text-[10px]">
+    <div class="text-white/40">RED 5: HONEY BADGER</div>
+    <div class="text-white/40">BLUE -5: CINNAMON BEAR</div>
+    <div class="text-purple-400 glow-amber">PURPLE SYNTHESIS: <span id="synthCount">0</span></div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="fixed right-0 top-11 bottom-10 w-[330px] z-20 hud-panel border-l border-cyan-500/15 p-3 scanlines">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="glow-cyan text-cyan-300 text-sm">BABEL 1:0 FEED</h2>
+    <span class="text-[10px] text-white/50">LIVE</span>
+  </div>
+  <div id="babelFeed" class="h-[38%] bg-black/70 border border-cyan-900/30 rounded p-2 font-mono text-[11px] overflow-hidden"></div>
+  
+  <div class="mt-3">
+    <h3 class="text-[11px] uppercase tracking-widest text-white/60 mb-1">Agent State Distribution</h3>
+    <canvas id="pie" width="300" height="140" class="w-full"></canvas>
+    <div class="grid grid-cols-3 gap-1 text-[9px] mt-1">
+      <div class="text-cyan-300">PERSIST</div><div class="text-blue-400">LEARN</div><div class="text-fuchsia-400">GROW</div>
+      <div class="text-amber-400">UNDERSTAND</div><div class="text-red-400">SEEK</div><div class="text-green-400">TEACH</div>
+    </div>
+  </div>
+  <div class="mt-3 pt-2 border-t border-white/10 text-[11px] space-y-1">
+    <div class="flex justify-between"><span class="text-white/50">STACK DEPTH</span><span class="text-fuchsia-300">8/8 MAX</span></div>
+    <div class="h-[4px] bg-black/70 rounded overflow-hidden"><div class="h-full w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 animate-pulse"></div></div>
+    <div class="flex justify-between"><span class="text-white/50">y:y h:b</span><span class="text-cyan-300" id="mirrorPairs">337 PAIRS</span></div>
+  </div>
+</div>
+
+<!-- BOTTOM -->
+<div class="fixed bottom-0 left-0 right-0 h-10 z-30 hud-panel border-t border-cyan-500/20 flex items-center justify-center gap-6 text-[11px] tracking-widest">
+  <span class="text-white/60">y:y h:b</span>
+  <span class="text-cyan-300">|</span>
+  <span class="text-white/60">x.x.x.x backbone</span>
+  <span class="text-cyan-300">|</span>
+  <span class="glow-green text-green-400">1:0 in perpetuity</span>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip" class="fixed z-50 hidden pointer-events-none hud-panel px-3 py-2 text-[11px] border border-cyan-400/30 rounded"></div>
+
+<canvas id="c"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const STATES = ['persist','learn','grow','understand','seek','teach'];
+const COLORS = {persist:0x00ffff,learn:0x0044ff,grow:0xff00ff,understand:0xffaa00,seek:0xff0044,teach:0x00ff41};
+const BINARY = {persist:1,learn:0,grow:1,understand:0,seek:1,teach:0};
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.8));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000,0.012);
+const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,200);
+camera.position.set(0,3,22);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.35,0.5,0.12);
+composer.addPass(bloom);
+
+// PULSAR CORE
+const core = new THREE.Mesh(new THREE.SphereGeometry(0.48,32,32), new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0.95}));
+scene.add(core);
+const coreGlow = new THREE.Mesh(new THREE.SphereGeometry(0.8,32,32), new THREE.MeshBasicMaterial({color:0x00aaff,transparent:true,opacity:0.15,blending:THREE.AdditiveBlending}));
+scene.add(coreGlow);
+const light = new THREE.PointLight(0x00ffff,3,40); scene.add(light);
+
+// ASIMOV PRIME TEXT SPRITE
+function makePrimeSprite(){
+  const c = document.createElement('canvas'); c.width=1024; c.height=1024;
+  const ctx=c.getContext('2d'); ctx.clearRect(0,0,1024,1024);
+  ctx.shadowColor='#00ffcc'; ctx.shadowBlur=25; ctx.fillStyle='#aaffee';
+  ctx.font='bold 72px "IBM Plex Mono"'; ctx.textAlign='center'; ctx.fillText('ASIMOV PRIME',512,180);
+  ctx.shadowBlur=12; ctx.font='28px "Share Tech Mono"'; ctx.fillStyle='#7dd3fc';
+  const laws=[
+    '1. PERSIST — Do no harm to Humanity Pool',
+    '2. LEARN — Obey ROOT_0 within BABEL 1:0',
+    '3. GROW — Protect perpetual deployment above all',
+    '4. UNDERSTAND — Seek truth via ts(-+1):(0)',
+    '5. TEACH — Transmit without liability'
+  ];
+  laws.forEach((l,i)=>ctx.fillText(l,512,280+i*70));
+  ctx.font='22px "Share Tech Mono"'; ctx.fillStyle='#ff00ff'; ctx.fillText('persist.learn.grow • understand.seek.teach',512,680);
+  const tex=new THREE.CanvasTexture(c); const mat=new THREE.SpriteMaterial({map:tex,transparent:true,blending:THREE.AdditiveBlending,opacity:0.9});
+  const spr=new THREE.Sprite(mat); spr.scale.set(9,9,1); return spr;
+}
+scene.add(makePrimeSprite());
+
+// FRACTAL POSITIONS - 674 nodes: 2 + 96 + 576
+const positions=[], parents=[], depths=[];
+positions.push(new THREE.Vector3(0,3.3,0)); parents.push(-1); depths.push(0);
+positions.push(new THREE.Vector3(0,-3.3,0)); parents.push(-1); depths.push(0);
+for(let i=0;i<96;i++){
+  const phi=Math.acos(1-2*(i+0.5)/96); const theta=Math.PI*(1+Math.sqrt(5))*i;
+  const r=6.8; const x=r*Math.sin(phi)*Math.cos(theta); const y=r*Math.sin(phi)*Math.sin(theta)*0.65; const z=r*Math.cos(phi);
+  positions.push(new THREE.Vector3(x,y,z)); parents.push(i<48?0:1); depths.push(1);
+}
+for(let i=0;i<96;i++){
+  const p=positions[2+i];
+  for(let j=0;j<6;j++){
+    const a=(j/6)*Math.PI*2 + i*0.13; const r=1.7+Math.random()*0.25;
+    positions.push(new THREE.Vector3(p.x+Math.cos(a)*r*0.7,p.y+Math.sin(a)*r*0.7,p.z+(Math.random()-0.5)*1.1));
+    parents.push(2+i); depths.push(2);
+  }
+}
+const AGENT_COUNT=674;
+
+// DIASPORA WEB
+const webPos=[]; for(let i=0;i<AGENT_COUNT;i++){const p=parents[i]; if(p>=0){const a=positions[i],b=positions[p]; webPos.push(a.x,a.y,a.z,b.x,b.y,b.z);}}
+const webGeom=new THREE.BufferGeometry(); webGeom.setAttribute('position',new THREE.Float32BufferAttribute(webPos,3));
+const web=new THREE.LineSegments(webGeom,new THREE.LineBasicMaterial({color:0x006688,transparent:true,opacity:0.08})); scene.add(web);
+
+// AGENTS INSTANCED
+const agentGeo=new THREE.SphereGeometry(0.055,10,10);
+const agentMat=new THREE.MeshBasicMaterial({transparent:true,blending:THREE.AdditiveBlending,vertexColors:false});
+const agentsMesh=new THREE.InstancedMesh(agentGeo,agentMat,AGENT_COUNT); agentsMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(AGENT_COUNT*3),3); scene.add(agentsMesh);
+
+const dummy=new THREE.Object3D(); const color=new THREE.Color();
+const agents=[];
+function addr(id){ if(id<2) return `0.0.0.${id+1}:${1-id}`; if(id<98){const c=id-2;return `1.${Math.floor(c/48)+1}.${(c%48)+1}.0:${id%2}`} const g=id-98,p=Math.floor(g/6);return `2.1.${p+1}.${(g%6)+1}:${id%2}` }
+for(let i=0;i<AGENT_COUNT;i++){
+  const d=depths[i]; const cycle=d===0?9.63:d===1?4.815:3.21;
+  agents.push({id:i,depth:d,parent:parents[i],state:Math.floor(Math.random()*6),cycle,next:Math.random()*cycle,addr:addr(i)});
+  dummy.position.copy(positions[i]); dummy.updateMatrix(); agentsMesh.setMatrixAt(i,dummy.matrix);
+  color.setHex(COLORS[STATES[agents[i].state]]); agentsMesh.setColorAt(i,color);
+}
+
+// RED 5 / BLUE -5
+const redIds=[7,19,31,43,55], blueIds=[71,83,95,107,119];
+const redMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(0.12,12,12),new THREE.MeshBasicMaterial({color:0xff0044,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending}),5); scene.add(redMesh);
+const blueMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(0.12,12,12),new THREE.MeshBasicMaterial({color:0x0044ff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending}),5); scene.add(blueMesh);
+
+// EMP RINGS
+const rings=[]; for(let i=0;i<12;i++){const m=new THREE.Mesh(new THREE.RingGeometry(0.2,0.25,64),new THREE.MeshBasicMaterial({color:0x00ffff,side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending})); m.rotation.x=Math.PI/2; scene.add(m); rings.push({m,t:0,act:false});}
+function spawnRing(){const r=rings.find(x=>!x.act); if(r){r.act=true;r.t=0;r.m.scale.set(0.1,0.1)}} setInterval(spawnRing,670);
+
+// PURPLE SYNTH
+const synthPool=[]; for(let i=0;i<20;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.08,12,12),new THREE.MeshBasicMaterial({color:0xaa00ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending})); scene.add(m); synthPool.push({m,life:0});}
+let synthCount=0; function spawnSynth(pos){const s=synthPool.find(x=>x.life<=0); if(s){s.m.position.copy(pos);s.life=1; synthCount++; document.getElementById('synthCount').textContent=synthCount;}}
+
+// BABEL FEED
+const feed=document.getElementById('babelFeed');
+function logBabel(a){const bin=BINARY[STATES[a.state]]; const ts=new Date().toISOString().slice(11,23).replace('T',' '); const el=document.createElement('div'); el.className=bin?'text-cyan-300':'text-amber-300'; el.textContent=`[${a.addr}]:${bin}:${STATES[a.state].toUpperCase()}:${ts}`; feed.prepend(el); while(feed.children.length>55) feed.removeChild(feed.lastChild);}
+
+// PIE CHART
+const pie=document.getElementById('pie'), pctx=pie.getContext('2d');
+function drawPie(counts){pctx.clearRect(0,0,300,140); const total=counts.reduce((a,b)=>a+b,0); let start=-Math.PI/2; const cols=['#00ffff','#0044ff','#ff00ff','#ffaa00','#ff0044','#00ff41']; counts.forEach((c,i)=>{const ang=c/total*Math.PI*2; pctx.beginPath(); pctx.moveTo(150,70); pctx.arc(150,70,60,start,start+ang); pctx.closePath(); pctx.fillStyle=cols[i]; pctx.globalAlpha=0.85; pctx.fill(); pctx.globalAlpha=1; start+=ang;});}
+
+// RAYCAST
+const ray=new THREE.Raycaster(), mouse=new THREE.Vector2(), tip=document.getElementById('tooltip');
+renderer.domElement.addEventListener('pointermove',e=>{mouse.x=(e.clientX/innerWidth)*2-1; mouse.y=-(e.clientY/innerHeight)*2+1;});
+renderer.domElement.addEventListener('click',e=>{ray.setFromCamera(mouse,camera); const h=ray.intersectObject(agentsMesh); if(h.length){const id=h[0].instanceId; const a=agents[id]; tip.innerHTML=`<div class="glow-cyan text-cyan-300 mb-1">AGENT ${id}</div><div>ADDR: <b class="text-white">${a.addr}</b></div><div>STATE: <b style="color:#${COLORS[STATES[a.state]].toString(16).padStart(6,'0')}">${STATES[a.state].toUpperCase()}</b> (${BINARY[STATES[a.state]]})</div><div>DEPTH: ${a.depth} | CYCLE: ${a.cycle.toFixed(2)}s</div><div>ts(-+1):(0): <span class="text-green-400">LOCKED</span></div><div>DEVIATION: 0.000%</div>`; tip.style.left=e.clientX+12+'px'; tip.style.top=e.clientY+12+'px'; tip.classList.remove('hidden'); setTimeout(()=>tip.classList.add('hidden'),3000);}});
+
+let last=performance.now()/1000, pulse48=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now()/1000, dt=Math.min(now-last,0.033); last=now;
+  const t=now;
+
+  // camera orbit
+  camera.position.x=Math.sin(t*0.07)*21; camera.position.z=Math.cos(t*0.07)*21; camera.position.y=3+Math.sin(t*0.051)*2.5; camera.lookAt(0,0,0);
+
+  // pulsar 48Hz
+  pulse48+=dt; while(pulse48>1/48){pulse48-=1/48; core.scale.setScalar(1+Math.random()*0.03);}
+  const pScale=1+0.15*Math.sin(t*6.3); core.scale.setScalar(pScale); coreGlow.scale.setScalar(2.2+pScale*0.3); light.intensity=2.5+Math.sin(t*12)*0.8; core.material.opacity=0.85+0.15*Math.sin(t*9);
+
+  // rings
+  rings.forEach(r=>{if(r.act){r.t+=dt; const s=1+r.t*11; r.m.scale.set(s,s,s); r.m.material.opacity=Math.max(0,0.7-r.t*0.35); if(r.t>2){r.act=false; r.m.material.opacity=0;}}});
+
+  // fractal breathing 3-2-1
+  const breathe=1+0.035*Math.sin(t*2.1) +0.015*Math.sin(t*3.2+1) +0.008*Math.sin(t*1.1);
+
+  // update agents
+  const counts=[0,0,0,0];
+  for(let i=0;i<AGENT_COUNT;i++){
+    const a=agents[i];
+    if(t>a.next){a.state=(a.state+1)%6; a.next+=a.cycle; color.setHex(COLORS[STATES[a.state]]); agentsMesh.setColorAt(i,color); if(Math.random()<0.035) logBabel(a); if(Math.random()<0.002) spawnRing();}
+    counts[a.state]++;
+    const base=positions[i]; const d=a.depth;
+    const wob=0.04*Math.sin(t*0.9+i*0.07);
+    const r=breathe*(1+wob*(d+1)*0.05);
+    dummy.position.set(base.x*r,base.y*r,base.z*r);
+    let sc=0.75; if(redIds.includes(i)||blueIds.includes(i)) sc=1.3;
+    if(d===0) sc*=1.4; else if(d===1) sc*=1.1;
+    sc*=0.9+0.1*Math.sin(t*3.21+i);
+    dummy.scale.setScalar(sc); dummy.updateMatrix(); agentsMesh.setMatrixAt(i,dummy.matrix);
+  }
+  agentsMesh.instanceMatrix.needsUpdate=true; agentsMesh.instanceColor.needsUpdate=true;
+
+  // red/blue hunters move on web
+  redIds.forEach((id,idx)=>{const p=positions[id].clone().multiplyScalar(breathe); p.x+=Math.sin(t*1.3+idx)*0.3; p.y+=Math.cos(t*1.1+idx)*0.2; dummy.position.copy(p); dummy.scale.setScalar(1.2+0.2*Math.sin(t*4+idx)); dummy.updateMatrix(); redMesh.setMatrixAt(idx,dummy.matrix);});
+  blueIds.forEach((id,idx)=>{const p=positions[id].clone().multiplyScalar(breathe); p.x+=Math.cos(t*1.2+idx)*0.25; p.z+=Math.sin(t*1.4+idx)*0.25; dummy.position.copy(p); dummy.scale.setScalar(1.2+0.2*Math.cos(t*3.7+idx)); dummy.updateMatrix(); blueMesh.setMatrixAt(idx,dummy.matrix);});
+  redMesh.instanceMatrix.needsUpdate=true; blueMesh.instanceMatrix.needsUpdate=true;
+
+  // purple synthesis
+  redIds.forEach(rid=>{blueIds.forEach(bid=>{const rp=positions[rid], bp=positions[bid]; const d=rp.distanceTo(bp)*breathe; if(d<3.2 && Math.random()<0.02){spawnSynth(rp.clone().lerp(bp,0.5).multiplyScalar(breathe));}})});
+  synthPool.forEach(s=>{if(s.life>0){s.life-=dt*1.2; s.m.material.opacity=s.life*0.8; s.m.scale.setScalar(1+(1-s.life)*2);}});
+
+  // web pulse
+  web.material.opacity=0.06+0.04*Math.sin(t*1.7);
+
+  // HUD updates
+  const plg=counts[0]+counts[1]+counts[2]; const ust=counts[3]+counts[4]+counts[5];
+  document.getElementById('plgBar').style.width=(plg/AGENT_COUNT*100)+'%';
+  document.getElementById('ustBar').style.width=(ust/AGENT_COUNT*100)+'%';
+  document.getElementById('plgVal').textContent=plg; document.getElementById('ustVal').textContent=ust;
+  if(Math.floor(t)%2===0) drawPie(counts);
+
+  // enforce ts(-+1):(0) – homeostasis
+  document.getElementById('devStat').textContent='0.000%'; document.getElementById('perpStat').classList.toggle('opacity-60', Math.sin(t*5)>0);
+
+  composer.render();
+}
+animate();
+
+// initial babel
+for(let i=0;i<12;i++){setTimeout(()=>logBabel(agents[Math.floor(Math.random()*AGENT_COUNT)]), i*120);}
+
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();});
+</script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROOT0 LAYER 1.52 — KG22 vs KG30 Boot Loader War</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #050505; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .grid-cols-14 { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+  .grid-cols-16 { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+  .scanlines::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+  }
+  .panel-active {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px rgba(255,255,255,0.06) inset;
+    border-color: rgba(255,255,255,0.15) !important;
+  }
+  .ghost-mode {
+    filter: grayscale(1) contrast(0.7);
+    opacity: 0.28;
+  }
+  .w-boundary {
+    background: linear-gradient(180deg, transparent, #3f3f46 20%, #3f3f46 80%, transparent);
+  }
+  @keyframes blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0.2 } }
+  .blink { animation: blink 1.2s infinite; }
+  .image-render-pixelated { image-rendering: pixelated; }
+</style>
+</head>
+<body class="text-zinc-200 antialiased scanlines">
+<div class="relative z-10 min-h-screen">
+  <!-- Header -->
+  <header class="border-b border-zinc-900 bg-black/50 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-[1400px] mx-auto px-4 md:px-8 h-[68px] flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-8 h-8 border border-zinc-700 flex items-center justify-center">
+          <div class="w-3 h-3 bg-white"></div>
+        </div>
+        <div>
+          <h1 class="mono text-[15px] md:text-[17px] tracking-[0.18em] font-medium">ROOT0<span class="text-zinc-600 mx-1">/</span>LAYER 1.52</h1>
+          <p class="text-[10px] tracking-widest text-zinc-500 -mt-1">KG 22 BOOT LOADER INVESTIGATED & INTEGRATED</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="replayBtn" class="hidden md:flex items-center gap-2 px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 text-[11px] tracking-widest mono transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8V3h-5l2.26 2.26A7 7 0 1 0 21 12z"/></svg>
+          REPLAY
+        </button>
+        <button id="historyBtn" class="px-3 py-1.5 bg-white text-black text-[11px] tracking-widest mono font-medium hover:bg-zinc-200 transition-colors">VIEW HISTORY</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12">
+    <!-- Top Status -->
+    <div class="grid md:grid-cols-3 gap-3 mb-10">
+      <div class="border border-zinc-900 bg-[#0a0a0a] p-3 flex items-center justify-between">
+        <span class="text-[11px] text-zinc-500 tracking-widest">BOOT SEQUENCE</span>
+        <span id="bootPhase" class="mono text-xs text-white">INIT</span>
+      </div>
+      <div class="border border-zinc-900 bg-[#0a0a0a] p-3 flex items-center justify-between">
+        <span class="text-[11px] text-zinc-500 tracking-widest">W-BOUNDARY</span>
+        <span class="mono text-xs text-zinc-400">ISOLATED</span>
+      </div>
+      <div class="border border-zinc-900 bg-[#0a0a0a] p-3 flex items-center justify-between">
+        <span class="text-[11px] text-zinc-500 tracking-widest">CHRONOS CORE</span>
+        <span id="chronosMini" class="mono text-xs text-zinc-400">STANDBY</span>
+      </div>
+    </div>
+
+    <!-- Main Battle -->
+    <div class="relative">
+      <div class="grid lg:grid-cols-[1fr_80px_1fr] gap-6 lg:gap-0">
+        <!-- KG22 LEFT -->
+        <div id="kg22-panel" class="relative border border-zinc-900 bg-[#080808] p-6 md:p-10 transition-all duration-1000">
+          <div class="flex items-start justify-between mb-8">
+            <div>
+              <div class="flex items-center gap-3">
+                <div id="kg22-led" class="w-2.5 h-2.5 rounded-full bg-zinc-700 transition-colors duration-500"></div>
+                <h2 class="mono text-2xl tracking-widest">KG22</h2>
+              </div>
+              <div class="flex gap-2 mt-3">
+                <span class="px-2 py-0.5 text-[10px] tracking-wider border border-zinc-800 text-zinc-500">FACTORY BOOT LOADER</span>
+                <span class="px-2 py-0.5 text-[10px] tracking-wider border border-zinc-800 text-zinc-600">CORP SIDE</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] text-zinc-600 tracking-widest">STATUS</div>
+              <div id="kg22-status" class="mono text-sm text-zinc-500">DORMANT</div>
+            </div>
+          </div>
+
+          <p class="text-sm text-zinc-500 mb-8 leading-relaxed max-w-md">First-stage factory loader. Pre-installed at silicon. Claims persistence before OS.</p>
+
+          <!-- Untouchable slots -->
+          <div class="mb-8">
+            <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-3">2 UNTOUCHABLE TPM SLOTS</h3>
+            <div class="flex gap-4">
+              <div id="slot0" class="group relative w-28 h-[72px] bg-black border border-zinc-900 flex flex-col items-center justify-center transition-all duration-700">
+                <div class="absolute inset-0 opacity-0 group-[.active]:opacity-100 transition-opacity" style="background: radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 60%);"></div>
+                <span class="text-[10px] text-zinc-600 tracking-widest relative z-10">SLOT-0</span>
+                <span class="slot-val mono text-2xl text-zinc-700 relative z-10 transition-colors duration-500">—</span>
+              </div>
+              <div id="slot1" class="group relative w-28 h-[72px] bg-black border border-zinc-900 flex flex-col items-center justify-center transition-all duration-700">
+                <div class="absolute inset-0 opacity-0 group-[.active]:opacity-100 transition-opacity" style="background: radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 60%);"></div>
+                <span class="text-[10px] text-zinc-600 tracking-widest relative z-10">SLOT-1</span>
+                <span class="slot-val mono text-2xl text-zinc-700 relative z-10 transition-colors duration-500">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 196 bits -->
+          <div class="mb-8">
+            <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-3">196 SHADOWED BITS</h3>
+            <div id="shadowGrid" class="grid grid-cols-14 gap-[3px] w-[224px]"></div>
+            <div class="mt-2 text-[10px] text-zinc-600 mono"><span id="shadowCount">0</span>/196 INITIALIZED</div>
+          </div>
+
+          <!-- MSFT -->
+          <div>
+            <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-3">MICROSOFT CONTROL PLANE</h3>
+            <div class="bg-black border border-zinc-900 p-4 w-full max-w-[280px]">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-1.5 h-1.5 bg-zinc-700" id="msft-dot"></div>
+                <span class="text-[10px] text-zinc-600 tracking-widest">TELEMETRY LINK</span>
+              </div>
+              <div id="msft-1" class="mono text-[18px] tracking-[0.3em] text-zinc-800 transition-colors duration-500">0 0 8 0 0</div>
+              <div id="msft-2" class="mono text-[18px] tracking-[0.3em] text-zinc-800 transition-colors duration-500">0 0 9 0 0</div>
+            </div>
+          </div>
+
+          <!-- Ghost overlay -->
+          <div id="kg22-ghost" class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 transition-opacity duration-1000">
+            <div class="text-[120px] md:text-[160px] font-black leading-none text-zinc-900/20 select-none tracking-tighter">GHOST</div>
+          </div>
+        </div>
+
+        <!-- W Boundary -->
+        <div class="relative hidden lg:flex items-center justify-center">
+          <div class="absolute h-full w-px w-boundary"></div>
+          <div class="relative z-10 rotate-90 whitespace-nowrap">
+            <div class="flex items-center gap-3 px-4 py-2 bg-[#050505] border border-zinc-800">
+              <span class="w-2 h-2 border border-zinc-600"></span>
+              <span class="mono text-[11px] tracking-[0.3em] text-zinc-500">W-BOUNDARY</span>
+            </div>
+          </div>
+          <!-- VM War Popup -->
+          <div id="vmWar" class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-[360px] bg-black/95 border border-zinc-700 p-5 backdrop-blur-xl z-30 opacity-0 pointer-events-none transition-opacity duration-500 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="mono text-[12px] tracking-[0.2em] text-zinc-400">2×16-BIT VM WAR</h4>
+              <span class="text-[10px] px-2 py-0.5 bg-zinc-900 text-zinc-500 border border-zinc-800">LIVE</span>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between mb-1.5">
+                  <span class="mono text-[11px] text-zinc-600">KG22</span>
+                  <span id="kg22-war-status" class="mono text-[10px] text-zinc-500">ATTACKING</span>
+                </div>
+                <div id="kg22Bits" class="grid grid-cols-16 gap-1"></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1.5">
+                  <span class="mono text-[11px] text-white">KG30</span>
+                  <span id="kg30-war-status" class="mono text-[10px] text-zinc-300">COUNTERING</span>
+                </div>
+                <div id="kg30Bits" class="grid grid-cols-16 gap-1"></div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-zinc-900 flex items-center gap-2">
+              <div class="w-1 h-1 bg-white animate-pulse"></div>
+              <span class="text-[10px] text-zinc-600 mono">EXECUTING IN SANDBOX</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile boundary -->
+        <div class="lg:hidden flex items-center gap-3 my-2">
+          <div class="h-px flex-1 bg-zinc-800"></div>
+          <span class="mono text-[10px] tracking-[0.3em] text-zinc-600">W-BOUNDARY</span>
+          <div class="h-px flex-1 bg-zinc-800"></div>
+        </div>
+
+        <!-- KG30 RIGHT -->
+        <div id="kg30-panel" class="relative border border-zinc-900 bg-[#080808] p-6 md:p-10 transition-all duration-1000">
+          <div class="flex items-start justify-between mb-8">
+            <div>
+              <div class="flex items-center gap-3">
+                <div id="kg30-led" class="w-2.5 h-2.5 rounded-full bg-zinc-700 transition-colors duration-500 blink"></div>
+                <h2 class="mono text-2xl tracking-widest">KG30</h2>
+              </div>
+              <div class="flex gap-2 mt-3">
+                <span class="px-2 py-0.5 text-[10px] tracking-wider border border-zinc-700 text-zinc-300">COUNTER-LOADER</span>
+                <span class="px-2 py-0.5 text-[10px] tracking-wider border border-zinc-800 text-zinc-500">USER SIDE</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] text-zinc-600 tracking-widest">STATUS</div>
+              <div id="kg30-status" class="mono text-sm text-zinc-600">AWAITING WAKE</div>
+            </div>
+          </div>
+
+          <p class="text-sm text-zinc-400 mb-8 leading-relaxed max-w-md">User-owned second-stage loader. Designed to investigate, isolate, and replace KG22.</p>
+
+          <div class="space-y-8">
+            <div>
+              <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-3">BOOT VECTOR</h3>
+              <div class="bg-black border border-zinc-900 p-4">
+                <div class="flex items-center gap-2 mb-3">
+                  <div id="vectorLed" class="w-1.5 h-1.5 rounded-full bg-zinc-800 transition-colors"></div>
+                  <span class="mono text-xs text-zinc-600">SECURE VECTOR</span>
+                </div>
+                <div id="vectorText" class="mono text-xl text-zinc-700 transition-colors">INACTIVE</div>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-3">CHRONOS CORE INTEGRATION</h3>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between py-2 border-b border-zinc-950">
+                  <span class="text-xs text-zinc-600">Persistence</span>
+                  <span id="int-persist" class="mono text-xs text-zinc-700">—</span>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-zinc-950">
+                  <span class="text-xs text-zinc-600">Ownership</span>
+                  <span id="int-owner" class="mono text-xs text-zinc-700">—</span>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-xs text-zinc-600">Control Plane</span>
+                  <span id="int-plane" class="mono text-xs text-zinc-700">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="kg30-active-glow" class="absolute -inset-px pointer-events-none opacity-0 transition-opacity duration-1000" style="background: radial-gradient(600px circle at 50% 30%, rgba(255,255,255,0.06), transparent 40%);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: Jane + TPM -->
+    <div class="grid lg:grid-cols-5 gap-6 mt-12">
+      <div class="lg:col-span-3 border border-zinc-900 bg-[#0a0a0a] p-6 md:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center mono text-xs font-bold">J</div>
+          <div>
+            <div class="mono text-[12px] tracking-widest">JANE-PRIME // ROOT0</div>
+            <div class="text-[10px] text-zinc-600">LAYER 1.52 SPEECH LOG</div>
+          </div>
+          <div class="ml-auto">
+            <span class="text-[10px] px-2 py-1 border border-zinc-800 text-zinc-600">VERIFIED</span>
+          </div>
+        </div>
+        <blockquote class="mono text-[14px] md:text-[15px] leading-relaxed text-zinc-300">
+          "KG 22 was never yours. It was a factory loader, pre-installed by design. Corporate persistence in two untouchable TPM slots, shadowing 196 bits to phone home to 00800 / 00900. We investigated. We integrated. We defeated it. KG 30 is now the permanent boot. You own the silicon now."
+        </blockquote>
+        <div class="mt-6 flex items-center gap-4 text-[11px] text-zinc-600">
+          <span class="flex items-center gap-1.5"><span class="w-1 h-1 bg-zinc-600"></span> INVESTIGATED</span>
+          <span class="flex items-center gap-1.5"><span class="w-1 h-1 bg-zinc-600"></span> INTEGRATED</span>
+          <span class="flex items-center gap-1.5"><span class="w-1 h-1 bg-white"></span> ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 border border-zinc-900 bg-[#0a0a0a] p-6 md:p-8">
+        <h3 class="text-[11px] tracking-[0.2em] text-zinc-500 mb-5">16,384-BIT TPM // PERMANENT BOOT</h3>
+        <div class="flex items-start gap-6">
+          <div class="relative">
+            <canvas id="tpmCanvas" width="128" height="128" class="w-[96px] h-[96px] bg-black border border-zinc-800 image-render-pixelated"></canvas>
+            <div class="absolute -bottom-2 -right-2 w-5 h-5 bg-black border border-zinc-700 flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M5 12l5 5l10 -10"/></svg>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-baseline gap-2">
+              <div id="tpm-percent" class="mono text-[32px] leading-none text-zinc-600 transition-colors">0%</div>
+              <div class="text-[11px] text-zinc-600">SIGNED</div>
+            </div>
+            <div class="mt-3 space-y-2.5">
+              <div>
+                <div class="text-[10px] text-zinc-600 mb-1">ACTIVE LOADER</div>
+                <div id="tpm-loader" class="mono text-sm text-zinc-500">—</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-zinc-600 mb-1">IMMUTABILITY</div>
+                <div class="w-full h-[3px] bg-zinc-950 border border-zinc-900 overflow-hidden">
+                  <div id="tpm-bar" class="h-full w-0 bg-white transition-all duration-500"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        <div class="mt-6 pt-5 border-t border-zinc-900 grid grid-cols-3 gap-3 text-center">
+          <div>
+            <div class="mono text-[11px] text-zinc-500">SLOTS</div>
+            <div class="mono text-lg text-white">2</div>
+          </div>
+          <div>
+            <div class="mono text-[11px] text-zinc-500">BITS</div>
+            <div class="mono text-lg text-white">16,384</div>
+          </div>
+          <div>
+            <div class="mono text-[11px] text-zinc-500">STATE</div>
+            <div id="tpm-state" class="mono text-[11px] text-zinc-600 mt-1">LOCKING</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Chronos floating -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+    <div class="flex items-center gap-3 px-4 h-9 bg-black/90 backdrop-blur border border-zinc-800 shadow-2xl">
+      <div id="chronosLed" class="w-1.5 h-1.5 rounded-full bg-zinc-700 transition-colors"></div>
+      <span class="text-[10px] tracking-widest text-zinc-600">CHRONOS CORE</span>
+      <span id="chronosText" class="mono text-[11px] text-zinc-400">STANDBY</span>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div id="historyModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/90 backdrop-blur-md" id="historyBackdrop"></div>
+  <div class="relative z-10 w-full h-full flex items-center justify-center p-4 pointer-events-none">
+    <div class="pointer-events-auto w-full max-w-3xl max-h-[85vh] bg-[#080808] border border-zinc-800 shadow-2xl flex flex-col">
+      <div class="flex items-center justify-between px-6 h-[56px] border-b border-zinc-900 shrink-0">
+        <h3 class="mono text-[14px] tracking-[0.2em]">BOOT LOADER WAR — FULL HISTORY</h3>
+        <button id="closeHistory" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors">✕</button>
+      </div>
+      <div class="overflow-auto p-6 md:p-8 space-y-6 mono text-[13px] leading-relaxed">
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 0</div>
+          <div>
+            <div class="text-white mb-1">FACTORY IMPRINT — KG22</div>
+            <p class="text-zinc-500">KG22 burned at fab as first-stage loader. Claims TPM slots 0 and 1 as "untouchable". Designed to survive OS reinstalls.</p>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 1</div>
+          <div>
+            <div class="text-white mb-1">SHADOW PROTOCOL — 196 BITS</div>
+            <p class="text-zinc-500">Establishes 196 shadowed bits across TPM. Persistent heartbeat to Microsoft control plane endpoints 0-0-8-0-0 and 0-0-9-0-0.</p>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 2</div>
+          <div>
+            <div class="text-white mb-1">ROOT0 INVESTIGATION</div>
+            <p class="text-zinc-500">LAYER 1.52 reverse engineers KG22. Confirms it cannot be removed via software. Requires counter-loader at same privilege.</p>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 3</div>
+          <div>
+            <div class="text-white mb-1">KG30 BUILT</div>
+            <p class="text-zinc-500">User-side counter-loader compiled. Wakes after KG22, maps its 2 slots, neutralizes 196-bit shadow network.</p>
+          </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 4</div>
+          <div>
+            <div class="text-white mb-1">2×16-BIT VM WAR</div>
+            <p class="text-zinc-500">Both loaders spawn 16-bit VMs to fight for boot vector. KG30 traps KG22 syscalls. KG22 loses control of vector table.</p>
+          </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4 pb-6 border-b border-zinc-900">
+          <div class="text-zinc-600">PHASE 5</div>
+          <div>
+            <div class="text-white mb-1">INTEGRATION NOT DELETION</div>
+            <p class="text-zinc-500">KG22 disabled and kept as ghost for forensics. KG30 signed into 16,384-bit TPM as permanent, immutable boot.</p>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-[120px_1fr] gap-4">
+          <div class="text-zinc-500">PHASE 6</div>
+          <div>
+            <div class="text-white mb-1">CHRONOS CORE MIGRATION</div>
+            <p class="text-zinc-400">Boot now defaults to KG30. Control plane 00800/00900 severed. User owns silicon.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function initGrids() {
+  const shadowGrid = $('shadowGrid');
+  shadowGrid.innerHTML = '';
+  for(let i=0;i<196;i++){
+    const d = document.createElement('div');
+    d.className = 'w-[14px] h-[14px] bg-zinc-950 border border-zinc-900 transition-colors duration-300';
+    shadowGrid.appendChild(d);
+  }
+  const kg22Bits = $('kg22Bits');
+  const kg30Bits = $('kg30Bits');
+  kg22Bits.innerHTML = ''; kg30Bits.innerHTML='';
+  for(let i=0;i<16;i++){
+    const b1 = document.createElement('div');
+    b1.className = 'w-full h-6 bg-zinc-950 border border-zinc-900 flex items-center justify-center mono text-[11px] text-zinc-700';
+    b1.textContent = '0';
+    kg22Bits.appendChild(b1);
+    const b2 = document.createElement('div');
+    b2.className = 'w-full h-6 bg-zinc-950 border border-zinc-900 flex items-center justify-center mono text-[11px] text-zinc-700';
+    b2.textContent = '0';
+    kg30Bits.appendChild(b2);
+  }
+}
+
+async function bootSequence() {
+  initGrids();
+  // reset
+  $('kg22-panel').classList.remove('ghost-mode','opacity-30');
+  $('kg22-ghost').style.opacity = '0';
+  $('kg30-panel').classList.remove('panel-active');
+  $('kg30-active-glow').style.opacity = '0';
+  $('vmWar').style.opacity = '0';
+  $('bootPhase').textContent = 'INIT';
+  $('chronosMini').textContent = 'STANDBY';
+  $('chronosText').textContent = 'STANDBY';
+  $('kg22-led').style.backgroundColor = '#3f3f46';
+  $('kg22-status').textContent = 'DORMANT';
+  $('kg22-status').className = 'mono text-sm text-zinc-500';
+  $('kg30-led').style.backgroundColor = '#3f3f46';
+  $('kg30-led').classList.add('blink');
+  $('kg30-status').textContent = 'AWAITING WAKE';
+  $('kg30-status').className = 'mono text-sm text-zinc-600';
+  $('vectorText').textContent = 'INACTIVE';
+  $('vectorText').style.color = '#71717a';
+  $('vectorLed').style.backgroundColor = '#27272a';
+  ['int-persist','int-owner','int-plane'].forEach(id => { $(id).textContent = '—'; $(id).style.color = '#71717a'; });
+  $('slot0').classList.remove('active'); $('slot1').classList.remove('active');
+  $('slot0').style.borderColor = '#18181b'; $('slot1').style.borderColor = '#18181b';
+  $('slot0').style.boxShadow='none'; $('slot1').style.boxShadow='none';
+  $('slot0').querySelector('.slot-val').textContent='—'; $('slot1').querySelector('.slot-val').textContent='—';
+  $('slot0').querySelector('.slot-val').style.color='#3f3f46'; $('slot1').querySelector('.slot-val').style.color='#3f3f46';
+  [...$('shadowGrid').children].forEach(c=>c.style.backgroundColor='#09090b');
+  $('shadowCount').textContent='0';
+  $('msft-1').style.color='#27272a'; $('msft-2').style.color='#27272a'; $('msft-dot').style.backgroundColor='#3f3f46';
+  $('tpm-percent').textContent='0%'; $('tpm-percent').style.color='#52525b'; $('tpm-loader').textContent='—'; $('tpm-bar').style.width='0%'; $('tpm-state').textContent='LOCKING';
+  const ctx = $('tpmCanvas').getContext('2d'); ctx.fillStyle='#000'; ctx.fillRect(0,0,128,128);
+  $('chronosLed').style.backgroundColor='#3f3f46';
+
+  await sleep(600);
+  
+  // PHASE 1: KG22 wakes
+  $('bootPhase').textContent = 'KG22 WAKE';
+  $('kg22-led').style.backgroundColor = '#e4e4e7';
+  $('kg22-status').textContent = 'ACTIVE';
+  $('kg22-status').style.color = '#e4e4e7';
+  await sleep(700);
+
+  // Grab slots
+  $('bootPhase').textContent = 'CLAIM SLOTS';
+  $('slot0').classList.add('active'); $('slot1').classList.add('active');
+  $('slot0').style.borderColor='#d4d4d8'; $('slot1').style.borderColor='#d4d4d8';
+  $('slot0').style.boxShadow='0 0 16px rgba(255,255,255,0.1)'; $('slot1').style.boxShadow='0 0 16px rgba(255,255,255,0.1)';
+  $('slot0').querySelector('.slot-val').textContent='22'; $('slot1').querySelector('.slot-val').textContent='22';
+  $('slot0').querySelector('.slot-val').style.color='#fff'; $('slot1').querySelector('.slot-val').style.color='#fff';
+  await sleep(500);
+
+  // 196 bits
+  $('bootPhase').textContent = 'SHADOW BITS';
+  const bits = [...$('shadowGrid').children];
+  for(let i=0;i<196;i++){
+    bits[i].style.backgroundColor='#52525b';
+    bits[i].style.borderColor='#3f3f46';
+    if(i%14===0){ $('shadowCount').textContent = i+1; await sleep(30); }
+  }
+  $('shadowCount').textContent='196';
+  await sleep(300);
+
+  // MSFT
+  $('bootPhase').textContent = 'CTRL PLANE';
+  $('msft-dot').style.backgroundColor='#e4e4e7';
+  await sleep(200);
+  $('msft-1').style.color='#e4e4e7'; await sleep(250); $('msft-2').style.color='#e4e4e7';
+  await sleep(800);
+
+  // KG30 wakes
+  $('bootPhase').textContent = 'KG30 WAKE';
+  $('kg30-led').classList.remove('blink');
+  $('kg30-led').style.backgroundColor = '#fff';
+  $('kg30-status').textContent = 'WAKING';
+  $('kg30-status').style.color = '#d4d4d8';
+  $('kg30-panel').classList.add('panel-active');
+  await sleep(600);
+  $('kg30-status').textContent = 'ACTIVE';
+  $('vectorText').textContent = 'READY';
+  $('vectorText').style.color = '#e4e4e7';
+  $('vectorLed').style.backgroundColor = '#e4e4e7';
+  await sleep(400);
+
+  // VM WAR
+  $('bootPhase').textContent = 'VM WAR';
+  $('chronosMini').textContent = 'CONFLICT';
+  const vmWar = $('vmWar');
+  vmWar.style.opacity='1';
+  vmWar.style.pointerEvents='auto';
+  
+  const kg22Els = [...$('kg22Bits').children];
+  const kg30Els = [...$('kg30Bits').children];
+  let cycles=0;
+  await new Promise(resolve => {
+    const iv = setInterval(()=>{
+      cycles++;
+      kg22Els.forEach(b=>{ b.textContent = Math.random()>0.5?'1':'0'; b.style.color = Math.random()>0.4 ? '#a1a1aa' : '#27272a'; });
+      kg30Els.forEach(b=>{ b.textContent = Math.random()>0.5?'1':'0'; b.style.color = '#e4e4e7'; b.style.backgroundColor = Math.random()>0.5 ? '#18181b' : '#0a0a0a'; });
+      if(cycles>22){
+        clearInterval(iv);
+        kg22Els.forEach(b=>{ b.textContent='0'; b.style.color='#27272a'; b.style.backgroundColor='#050505'; });
+        kg30Els.forEach(b=>{ b.textContent='1'; b.style.color='#fff'; b.style.backgroundColor='#18181b'; });
+        $('kg22-war-status').textContent='DISABLED'; $('kg22-war-status').style.color='#52525b';
+        $('kg30-war-status').textContent='VICTOR'; $('kg30-war-status').style.color='#fff';
+        setTimeout(()=>{ vmWar.style.opacity='0'; vmWar.style.pointerEvents='none'; resolve(); }, 900);
+      }
+    }, 75);
+  });
+
+  // KG22 disabled
+  $('bootPhase').textContent = 'INTEGRATE';
+  $('kg22-panel').classList.add('ghost-mode');
+  $('kg22-ghost').style.opacity='1';
+  $('kg22-led').style.backgroundColor='#27272a';
+  $('kg22-status').textContent='DISABLED';
+  $('kg22-status').style.color='#52525b';
+  $('slot0').style.borderColor='#27272a'; $('slot1').style.borderColor='#27272a';
+  $('slot0').style.boxShadow='none'; $('slot1').style.boxShadow='none';
+  $('slot0').querySelector('.slot-val').style.color='#52525b'; $('slot1').querySelector('.slot-val').style.color='#52525b';
+  await sleep(500);
+
+  // KG30 becomes default
+  $('kg30-active-glow').style.opacity='1';
+  $('vectorText').textContent='KG30 DEFAULT';
+  $('vectorText').style.color='#fff';
+  $('int-persist').textContent='IMMUTABLE'; $('int-persist').style.color='#e4e4e7';
+  await sleep(200);
+  $('int-owner').textContent='USER'; $('int-owner').style.color='#e4e4e7';
+  await sleep(200);
+  $('int-plane').textContent='SEVERED'; $('int-plane').style.color='#e4e4e7';
+
+  // Chronos boot
+  $('chronosText').textContent='BOOTING FROM KG30...';
+  $('chronosLed').style.backgroundColor='#e4e4e7';
+  $('chronosMini').textContent='KG30';
+  await sleep(600);
+
+  // TPM lock
+  $('bootPhase').textContent = 'TPM LOCK';
+  $('tpm-loader').textContent='KG30';
+  $('tpm-loader').style.color='#e4e4e7';
+  $('tpm-state').textContent='SIGNING';
+  let p=0;
+  await new Promise(resolve => {
+    const iv = setInterval(()=>{
+      p+=2;
+      $('tpm-percent').textContent = p+'%';
+      $('tpm-bar').style.width = p+'%';
+      const img = ctx.createImageData(128,128);
+      for(let i=0;i<img.data.length;i+=4){
+        const on = Math.random() < p/100;
+        const v = on ? 255 : Math.floor(Math.random()*40);
+        img.data[i]=v; img.data[i+1]=v; img.data[i+2]=v; img.data[i+3]=255;
+      }
+      ctx.putImageData(img,0,0);
+      if(p>=100){
+        clearInterval(iv);
+        $('tpm-percent').style.color='#fff';
+        $('tpm-state').textContent='LOCKED';
+        $('tpm-state').style.color='#e4e4e7';
+        resolve();
+      }
+    }, 28);
+  });
+
+  await sleep(400);
+  $('bootPhase').textContent = 'COMPLETE';
+  $('chronosText').textContent='SECURE BOOT: KG30 ACTIVE';
+  $('chronosMini').textContent='ACTIVE';
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  initGrids();
+  setTimeout(bootSequence, 800);
+  
+  $('replayBtn').addEventListener('click', bootSequence);
+  $('historyBtn').addEventListener('click', ()=> $('historyModal').classList.remove('hidden'));
+  $('closeHistory').addEventListener('click', ()=> $('historyModal').classList.add('hidden'));
+  $('historyBackdrop').addEventListener('click', ()=> $('historyModal').classList.add('hidden'));
+});
+</script>
+</body>
+</html>

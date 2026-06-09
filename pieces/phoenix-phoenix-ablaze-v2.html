@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHOENIX ABLAZE TOROID · ROOT0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #e8dcc4;
+  --panel: #f2e8d4;
+  --border: #8a7558;
+  --ink: #2d4a3e;
+  --a1: #2c5564;
+  --a2: #4a7c5a;
+  --a3: #b8862a;
+  --a4: #7a5a3a;
+  --good: #4a7c5a;
+  --bad: #a04848;
+  --warn: #b8862a;
+  --bg: #d8c8a8;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 30% 20%, #f0e5cd 0%, transparent 60%);
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px);
+  opacity: 0.5;
+}
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(90,58,42,0.1) 100%);
+}
+.app {
+  display: flex; flex-direction: column; height: 100vh;
+  position: relative; z-index: 10; max-width: 1200px; margin: 0 auto;
+  background: rgba(232,220,196,0.3);
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+.topbar {
+  padding: 12px 18px; display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px double var(--border);
+  background: linear-gradient(180deg, rgba(122,90,58,0.06), transparent);
+  flex-shrink: 0;
+}
+.title {
+  font-family: "Major Mono Display", monospace; font-size: 18px; letter-spacing: 0.06em;
+}
+.subtitle { font-size: 9px; color: var(--ink); opacity: 0.6; letter-spacing: 0.2em; margin-left: 12px; }
+.split { display: grid; grid-template-columns: 340px 1fr; flex: 1; min-height: 0; }
+.left {
+  border-right: 1px solid var(--border); padding: 16px;
+  display: flex; flex-direction: column; gap: 16px; overflow-y: auto;
+}
+.right { padding: 16px; overflow-y: auto; }
+
+.panel-card {
+  background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+}
+h2 {
+  font-family: "Cormorant SC", serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em; margin: 0 0 8px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--border); color: var(--ink);
+}
+#toroidCanvas { width: 100%; height: auto; border: 1px solid var(--border); background: #26261a; }
+.cavity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+.cavity-group { text-align: center; }
+.cavity-label { font-size: 8px; color: var(--ink); letter-spacing: 0.1em; font-family: "Cormorant SC", serif; font-weight: 700; margin-bottom: 4px; }
+.cavities { display: flex; gap: 3px; justify-content: center; }
+.cavity {
+  width: 20px; height: 26px; border: 1px solid var(--border); background: #f0e5cd;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700;
+  transition: all 0.15s; color: rgba(0,0,0,0.3);
+}
+.cavity.on { color: #000; }
+.cavity.group-a4.on { background: var(--a4); color: #fff; border-color: var(--a4); }
+.cavity.group-a3.on { background: var(--a3); color: #000; border-color: var(--a3); }
+.cavity.group-a2.on { background: var(--a2); color: #fff; border-color: var(--a2); }
+.cavity.group-a1.on { background: var(--a1); color: #fff; border-color: var(--a1); }
+.bit-readout { display: flex; justify-content: space-between; font-size: 10px; margin: 6px 0; }
+.bit-readout span { color: rgba(0,0,0,0.5); }
+.bit-readout b { color: #000; }
+.gate-row { display: flex; gap: 8px; margin: 8px 0; }
+.gate {
+  flex: 1; border: 1px solid var(--border); padding: 6px; text-align: center;
+  background: var(--panel); font-size: 9px; transition: all 0.3s;
+}
+.gate.pass { background: color-mix(in srgb, var(--good) 20%, var(--panel)); border-color: var(--good); }
+.gate.fail { background: color-mix(in srgb, var(--bad) 20%, var(--panel)); border-color: var(--bad); }
+.gate .g-light { width: 12px; height: 12px; border-radius: 50%; margin: 4px auto; background: #ccc; border: 1px solid #888; }
+.gate.pass .g-light { background: var(--good); border-color: var(--good); box-shadow: 0 0 8px var(--good); }
+.gate.fail .g-light { background: var(--bad); border-color: var(--bad); }
+.temp-gauge { display: flex; align-items: center; gap: 8px; }
+.temp-bar { flex: 1; height: 12px; background: #ddd; border: 1px solid var(--border); border-radius: 0; overflow: hidden; }
+.temp-fill { height: 100%; background: var(--warn); width: 5%; transition: width 0.05s linear; }
+.pulse-btn {
+  width: 100%; padding: 12px; background: var(--ink); color: #f2e8d4;
+  border: 1px solid var(--ink); font-family: inherit; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.2em; cursor: pointer; transition: background 0.15s;
+}
+.pulse-btn:active:not(:disabled) { background: var(--good); }
+.pulse-btn:disabled { opacity: 0.4; }
+.receipt-box {
+  background: var(--panel); border: 1px solid var(--border); padding: 8px;
+  font-family: "JetBrains Mono", monospace; font-size: 10px; height: 120px; overflow-y: auto;
+  white-space: pre-wrap; line-height: 1.5;
+}
+@keyframes ablaze { 0% { filter: brightness(1); } 50% { filter: brightness(2.5) hue-rotate(20deg); } 100% { filter: brightness(1); } }
+.ablaze-effect { animation: ablaze 0.2s ease-in-out 4; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <span class="title">PHOENIX ABLAZE TOROID</span>
+      <span class="subtitle">BORON/PHOTONIC PROCESSOR · ROOT0 HARDWARE LAYER</span>
+    </div>
+    <div style="font-size:10px; opacity:0.8;">
+      <a href="https://ipfs.io/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39" target="_blank" style="color:var(--ink); text-decoration:none; border-bottom:1px dotted var(--ink);">↦ Verify CID</a>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="left">
+      <div class="panel-card">
+        <h2>Toroid Ring · 4.7 THz Pulse</h2>
+        <canvas id="toroidCanvas" width="300" height="120"></canvas>
+        <div style="display:flex; justify-content:space-between; font-size:9px; margin-top:4px;">
+          <span>Temp: <span id="tempDisplay">4 K</span></span>
+          <span>Pulses: <span id="pulseCount">0</span></span>
+          <span id="rateDisplay">0 φ/s</span>
+        </div>
+        <div class="temp-gauge" style="margin-top:4px;">
+          <span style="font-size:8px;">4K</span>
+          <div class="temp-bar"><div class="temp-fill" id="tempFill"></div></div>
+          <span style="font-size:8px;">1200°C</span>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>12‑bit Photonic Cavities</h2>
+        <div class="cavity-grid" id="cavityGrid"></div>
+        <div class="bit-readout">
+          <span>hex <b id="hexVal">0x000</b></span>
+          <span>dec <b id="decVal">0</b></span>
+          <span>bin <b id="binVal">000000000000</b></span>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>3 Gates</h2>
+        <div class="gate-row" id="gateRow">
+          <div class="gate" id="gate1"><div>G1 Auth</div><div class="g-light"></div><div class="g-state">—</div></div>
+          <div class="gate" id="gate2"><div>G2 Policy</div><div class="g-light"></div><div class="g-state">—</div></div>
+          <div class="gate" id="gate3"><div>G3 Witness</div><div class="g-light"></div><div class="g-state">—</div></div>
+        </div>
+        <div style="font-size:9px; margin-top:4px;">Active: <span id="activeGate">—</span></div>
+      </div>
+
+      <button class="pulse-btn" id="pulseBtn" disabled>◉ PULSE</button>
+      <div style="font-size:8px; opacity:0.6; margin-top:4px;">inhale · hold · exhale · witness · ablaze</div>
+    </div>
+
+    <div class="right">
+      <div class="panel-card" style="margin-bottom:12px;">
+        <h2>Receipt · struct root0_receipt</h2>
+        <div class="receipt-box" id="receiptBox">awaiting first pulse…</div>
+      </div>
+      <div class="panel-card">
+        <h2>Merkle Chain · <span id="ledgerCount">0</span> receipts</h2>
+        <div style="font-family:JetBrains Mono; font-size:10px; word-break:break-all;" id="merkleRoot">—</div>
+        <div style="font-size:9px; opacity:0.6; margin-top:4px;">
+          ROOT0 · CC-BY-4.0 · David Wise · USCO 1-15120635661
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── GLOBALS ─────────────────────────────
+const $ = s => document.querySelector(s);
+const canvas = $('#toroidCanvas');
+const ctx = canvas.getContext('2d');
+let pulseCount = 0;
+let pulseInterval = null;
+let isPulsing = false;
+let currentBits = [0,0,0,0,0,0,0,0,0,0,0,0]; // A4[11..9] A3[8..6] A2[5..3] A1[2..0]
+let currentGates = { g1:null, g2:null, g3:null };
+let receiptLog = [];
+let merkleRoot = null;
+
+// audio
+let audioCtx;
+function beep(f=800,d=0.07,v=0.02,type='sine') {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type=type; o.frequency.value=f; g.gain.value=v;
+    o.connect(g); g.connect(audioCtx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+d);
+    o.stop(audioCtx.currentTime+d);
+  } catch(e) {}
+}
+
+// SHA-256
+async function sha256(txt) {
+  const buf = new TextEncoder().encode(txt);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function merkleTree(leaves) {
+  if (!leaves.length) return null;
+  let layer = leaves.slice();
+  while (layer.length>1) {
+    const next = [];
+    for (let i=0;i<layer.length;i+=2) {
+      const L = layer[i], R = layer[i+1] || layer[i];
+      next.push(await sha256(L+R));
+    }
+    layer = next;
+  }
+  return layer[0];
+}
+
+// ─── RENDER CANVAS TOROID ────────────────
+function drawToroid(bits, phase='idle') {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cx=150, cy=60, R=45, r=18;
+  // ring
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,R,r,0,0,Math.PI*2);
+  ctx.strokeStyle = '#8a7558'; ctx.lineWidth=1.5; ctx.stroke();
+  // photons (bits that are 1 = glowing dot)
+  const numPhotons = bits.filter(b=>b===1).length || 0;
+  for (let i=0;i<Math.max(1,numPhotons);i++) {
+    const angle = (Date.now()*0.002 + i*(Math.PI*2/Math.max(1,numPhotons))) % (Math.PI*2);
+    const px = cx + R * Math.cos(angle);
+    const py = cy + r * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(px,py,3,0,2*Math.PI);
+    ctx.fillStyle = bits[i] ? '#4dff88' : '#888';
+    ctx.fill();
+  }
+  // glow on ablaze
+  if (phase==='ablaze') {
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,R,r,0,0,Math.PI*2);
+    ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth=3; ctx.stroke();
+  }
+  requestAnimationFrame(()=>drawToroid(currentBits, isPulsing?'pulsing':'idle'));
+}
+drawToroid(currentBits);
+
+// ─── CAVITY GRID BUILD ───────────────────
+function buildCavityGrid() {
+  const groups = [
+    {name:'A4', color:'var(--a4)', cls:'group-a4', start:9},
+    {name:'A3', color:'var(--a3)', cls:'group-a3', start:6},
+    {name:'A2', color:'var(--a2)', cls:'group-a2', start:3},
+    {name:'A1', color:'var(--a1)', cls:'group-a1', start:0},
+  ];
+  const grid = $('#cavityGrid');
+  grid.innerHTML = '';
+  groups.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'cavity-group';
+    div.innerHTML = `<div class="cavity-label" style="color:${g.color}">${g.name}</div><div class="cavities"></div>`;
+    const cavities = div.querySelector('.cavities');
+    for (let i=0;i<3;i++) {
+      const el = document.createElement('div');
+      el.className = `cavity ${g.cls}`;
+      el.textContent = '0';
+      el.id = `cav-${g.start+i}`;
+      cavities.appendChild(el);
+    }
+    grid.appendChild(div);
+  });
+  updateCavityBits(currentBits);
+}
+buildCavityGrid();
+
+function updateCavityBits(bits) {
+  for (let i=0;i<12;i++) {
+    const el = document.getElementById(`cav-${i}`);
+    if (el) {
+      el.textContent = bits[i] ? '1' : '0';
+      el.classList.toggle('on', bits[i]===1);
+    }
+  }
+  const packed = bits.reduce((acc,b,i)=> acc | (b<<(11-i)), 0);
+  $('#hexVal').textContent = '0x'+packed.toString(16).toUpperCase().padStart(3,'0');
+  $('#decVal').textContent = packed;
+  $('#binVal').textContent = bits.join('');
+}
+
+// ─── GATE UI UPDATE ──────────────────────
+function updateGateState(g1,g2,g3) {
+  const gates = [
+    {el:$('#gate1'), state:g1},
+    {el:$('#gate2'), state:g2},
+    {el:$('#gate3'), state:g3},
+  ];
+  gates.forEach(g => {
+    if (!g.state) { g.el.className='gate'; g.el.querySelector('.g-state').textContent='—'; return; }
+    g.el.className = 'gate '+(g.state==='PASS'?'pass':'fail');
+    g.el.querySelector('.g-state').textContent = g.state;
+  });
+  currentGates = {g1,g2,g3};
+}
+
+function setActiveGate(n) {
+  $('#activeGate').textContent = n ? `G${n}` : '—';
+}
+
+// ─── TEMPERATURE ─────────────────────────
+function setTemp(tempK, isAblaze) {
+  const display = $('#tempDisplay');
+  const fill = $('#tempFill');
+  const pct = Math.min(100, (tempK-4)/1200*100);
+  fill.style.width = pct+'%';
+  if (tempK > 300) { fill.style.background = '#ff4d4d'; display.textContent = Math.round(tempK) + '°C'; }
+  else { fill.style.background = 'var(--warn)'; display.textContent = tempK + ' K'; }
+  if (isAblaze) {
+    document.body.classList.add('ablaze-effect');
+    setTimeout(()=>document.body.classList.remove('ablaze-effect'), 200);
+  }
+}
+
+// ─── PULSE SIMULATION ────────────────────
+async function pulse() {
+  if (isPulsing) return;
+  isPulsing = true;
+  $('#pulseBtn').disabled = true;
+  setActiveGate(0);
+  updateGateState(null,null,null);
+  setTemp(4, false);
+  pulseCount++;
+  $('#pulseCount').textContent = pulseCount;
+  $('#rateDisplay').textContent = '1 φ/s';
+
+  // 1. Randomized intent demo
+  const intents = ["transfer $4500","query lineage","deploy contract","audit logs","verify receipt","publish proof"];
+  const intent = intents[Math.floor(Math.random()*intents.length)];
+
+  // 2. Compute axioms A1..A4 (mock)
+  const a1Val = 4, a2Val = 4, a3Val = 4, a4Val = 4; // always HOLD for demo
+  const bitsA4 = a4Val.toString(2).padStart(3,'0').split('').map(Number);
+  const bitsA3 = a3Val.toString(2).padStart(3,'0').split('').map(Number);
+  const bitsA2 = a2Val.toString(2).padStart(3,'0').split('').map(Number);
+  const bitsA1 = a1Val.toString(2).padStart(3,'0').split('').map(Number);
+  currentBits = [...bitsA4, ...bitsA3, ...bitsA2, ...bitsA1];
+  updateCavityBits(currentBits);
+
+  // 3. Photon injection (gate 1)
+  beep(800,0.06,0.02);
+  setActiveGate(1);
+  await sleep(400);
+  updateGateState('PASS', null, null);
+  beep(1000,0.06,0.02);
+
+  // 4. Gate 2 (Policy)
+  setActiveGate(2);
+  await sleep(400);
+  updateGateState('PASS', 'PASS', null);
+  beep(1100,0.06,0.02);
+
+  // 5. Gate 3 (Witness)
+  setActiveGate(3);
+  await sleep(400);
+  updateGateState('PASS', 'PASS', 'PASS');
+  beep(1200,0.06,0.02);
+
+  // 6. Ablaze reset (temp spike)
+  setTemp(1200, true);
+  setTimeout(()=>{ beep(250,0.2,0.03,'sawtooth'); }, 50);
+  currentBits = [0,0,0,0,0,0,0,0,0,0,0,0];
+  updateCavityBits(currentBits);
+  await sleep(300);
+  setTemp(4, false);
+  updateGateState(null,null,null);
+  setActiveGate(0);
+
+  // 7. Generate receipt
+  const ts = new Date().toISOString();
+  const body = {
+    header: currentBits.join(''), intent, ts,
+    a1:a1Val, a2:a2Val, a3:a3Val, a4:a4Val,
+    gates: {g1:'PASS',g2:'PASS',g3:'PASS'}
+  };
+  const leafHash = await sha256(JSON.stringify(body));
+  const tpmSig = (await sha256(leafHash+'ROOT0'+ts)).slice(0,16);
+  const receipt = { ...body, leafHash, tpmSig };
+  receiptLog.unshift(receipt);
+  if (receiptLog.length>10) receiptLog.length=10;
+  merkleRoot = await merkleTree(receiptLog.map(r=>r.leafHash));
+  $('#merkleRoot').textContent = merkleRoot ? merkleRoot.slice(0,24)+'…' : '—';
+  $('#ledgerCount').textContent = receiptLog.length;
+  const box = $('#receiptBox');
+  box.textContent = `[PULSE ${pulseCount}]
+intent: ${intent}
+ts: ${ts}
+A1:${a1Val} A2:${a2Val} A3:${a3Val} A4:${a4Val}
+leaf: ${leafHash.slice(0,16)}…
+TPM sig: ${tpmSig}
+Merkle root: ${merkleRoot.slice(0,16)}…`;
+
+  isPulsing = false;
+  $('#pulseBtn').disabled = false;
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// ─── INIT ────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  $('#pulseBtn').disabled = false;
+  $('#pulseBtn').addEventListener('click', pulse);
+  drawToroid([],'idle');
+});
+</script>
+</body>
+</html>

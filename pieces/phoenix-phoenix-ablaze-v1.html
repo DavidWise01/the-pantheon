@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHOENIX ABLAZE TOROID · ROOT0 + MYTHOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #e8dcc4;
+  --panel: #f2e8d4;
+  --border: #8a7558;
+  --ink: #2d4a3e;
+  --a1: #2c5564;
+  --a2: #4a7c5a;
+  --a3: #b8862a;
+  --a4: #7a5a3a;
+  --good: #4a7c5a;
+  --bad: #a04848;
+  --warn: #b8862a;
+  --bg: #d8c8a8;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 30% 20%, #f0e5cd 0%, transparent 60%);
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(138,117,88,0.08) 0px, rgba(138,117,88,0) 1px, transparent 2px);
+  opacity: 0.5;
+}
+.app {
+  display: flex; flex-direction: column; height: 100vh;
+  position: relative; z-index: 10; max-width: 1400px; margin: 0 auto;
+  background: rgba(232,220,196,0.3);
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+.topbar {
+  padding: 12px 18px; display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px double var(--border);
+  background: linear-gradient(180deg, rgba(122,90,58,0.06), transparent);
+  flex-shrink: 0;
+}
+.title { font-family: "Major Mono Display", monospace; font-size: 18px; letter-spacing: 0.06em; }
+.subtitle { font-size: 9px; color: var(--ink); opacity: 0.6; letter-spacing: 0.2em; margin-left: 12px; }
+.split { display: grid; grid-template-columns: 340px 1fr 360px; flex: 1; min-height: 0; }
+.left, .mid, .right { padding: 16px; overflow-y: auto; border-right: 1px solid var(--border); }
+.right { border-right: none; }
+.panel-card {
+  background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; margin-bottom: 12px;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+}
+h2 {
+  font-family: "Cormorant SC", serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em; margin: 0 0 8px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--border); color: var(--ink);
+}
+#toroidCanvas, #mythosCanvas { width: 100%; height: auto; border: 1px solid var(--border); background: #26261a; }
+.cavity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+.cavity-group { text-align: center; }
+.cavity-label { font-size: 8px; letter-spacing: 0.1em; font-family: "Cormorant SC", serif; font-weight: 700; margin-bottom: 4px; }
+.cavities { display: flex; gap: 3px; justify-content: center; }
+.cavity {
+  width: 20px; height: 26px; border: 1px solid var(--border); background: #f0e5cd;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; transition: all 0.15s; color: rgba(0,0,0,0.3);
+}
+.cavity.on { color: #000; }
+.cavity.group-a4.on { background: var(--a4); color: #fff; border-color: var(--a4); }
+.cavity.group-a3.on { background: var(--a3); color: #000; border-color: var(--a3); }
+.cavity.group-a2.on { background: var(--a2); color: #fff; border-color: var(--a2); }
+.cavity.group-a1.on { background: var(--a1); color: #fff; border-color: var(--a1); }
+.bit-readout { display: flex; justify-content: space-between; font-size: 10px; margin: 6px 0; }
+.gate-row { display: flex; gap: 8px; margin: 8px 0; }
+.gate {
+  flex: 1; border: 1px solid var(--border); padding: 6px; text-align: center;
+  background: var(--panel); font-size: 9px; transition: all 0.3s;
+}
+.gate.pass { background: color-mix(in srgb, var(--good) 20%, var(--panel)); border-color: var(--good); }
+.gate.fail { background: color-mix(in srgb, var(--bad) 20%, var(--panel)); border-color: var(--bad); }
+.gate .g-light { width: 12px; height: 12px; border-radius: 50%; margin: 4px auto; background: #ccc; border: 1px solid #888; }
+.gate.pass .g-light { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.gate.fail .g-light { background: var(--bad); }
+.temp-gauge { display: flex; align-items: center; gap: 8px; }
+.temp-bar { flex: 1; height: 12px; background: #ddd; border: 1px solid var(--border); overflow: hidden; }
+.temp-fill { height: 100%; background: var(--warn); width: 5%; transition: width 0.05s linear; }
+.pulse-btn {
+  width: 100%; padding: 12px; background: var(--ink); color: #f2e8d4;
+  border: 1px solid var(--ink); font-family: inherit; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.2em; cursor: pointer;
+}
+.pulse-btn:active:not(:disabled) { background: var(--good); }
+.pulse-btn:disabled { opacity: 0.4; }
+.receipt-box {
+  background: var(--panel); border: 1px solid var(--border); padding: 8px;
+  font-size: 10px; height: 140px; overflow-y: auto; white-space: pre-wrap;
+}
+@keyframes ablaze { 0% { filter: brightness(1); } 50% { filter: brightness(2.5) hue-rotate(20deg); } 100% { filter: brightness(1); } }
+.ablaze-effect { animation: ablaze 0.2s ease-in-out 4; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div><span class="title">PHOENIX ABLAZE TOROID</span><span class="subtitle">ROOT0 + MYTHOS · 4.7 THz · 12-BIT</span></div>
+    <div style="font-size:10px; opacity:0.8;"><a href="https://ipfs.io/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39" target="_blank" style="color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--ink)">↦ Verify CID</a></div>
+  </div>
+  <div class="split">
+    <div class="left">
+      <div class="panel-card">
+        <h2>Toroid Ring · 4.7 THz</h2>
+        <canvas id="toroidCanvas" width="300" height="120"></canvas>
+        <div style="display:flex;justify-content:space-between;font-size:9px;margin-top:4px;">
+          <span>Temp: <span id="tempDisplay">4 K</span></span>
+          <span>Pulses: <span id="pulseCount">0</span></span>
+          <span id="rateDisplay">0 φ/s</span>
+        </div>
+        <div class="temp-gauge" style="margin-top:4px;">
+          <span style="font-size:8px;">4K</span><div class="temp-bar"><div class="temp-fill" id="tempFill"></div></div><span style="font-size:8px;">1200°C</span>
+        </div>
+      </div>
+      <div class="panel-card">
+        <h2>12-bit Cavities</h2>
+        <div class="cavity-grid" id="cavityGrid"></div>
+        <div class="bit-readout"><span>hex <b id="hexVal">0x000</b></span><span>dec <b id="decVal">0</b></span><span>bin <b id="binVal">000000000000</b></span></div>
+      </div>
+      <div class="panel-card">
+        <h2>3 Gates + Lock</h2>
+        <div class="gate-row">
+          <div class="gate" id="gate0"><div>G0 Lock</div><div class="g-light"></div><div class="g-state">SSH 21/22</div></div>
+          <div class="gate" id="gate1"><div>G1 Auth</div><div class="g-light"></div><div class="g-state">—</div></div>
+          <div class="gate" id="gate2"><div>G2 Policy</div><div class="g-light"></div><div class="g-state">—</div></div>
+          <div class="gate" id="gate3"><div>G3 Witness</div><div class="g-light"></div><div class="g-state">—</div></div>
+        </div>
+      </div>
+      <button class="pulse-btn" id="pulseBtn">◉ PULSE</button>
+      <div style="font-size:8px;opacity:0.6;margin-top:4px;">0.0.0.0 → 127.0.0.0 → toroid → witness</div>
+    </div>
+    <div class="mid">
+      <div class="panel-card">
+        <h2>Receipt · root0_receipt</h2>
+        <div class="receipt-box" id="receiptBox">awaiting first pulse…</div>
+      </div>
+      <div class="panel-card">
+        <h2>Merkle · <span id="ledgerCount">0</span> receipts</h2>
+        <div style="font-family:JetBrains Mono;font-size:10px;word-break:break-all;" id="merkleRoot">—</div>
+        <div style="font-size:9px;opacity:0.6;margin-top:4px;">ROOT0 · CC-BY-4.0 · David Wise · USCO 1-15120635661</div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="panel-card">
+        <h2>MYTHOS · 20×3 Isodecohedron</h2>
+        <canvas id="mythosCanvas" width="320" height="280"></canvas>
+        <div style="font-size:9px;opacity:0.7;margin-top:4px;">30 vertices · 32 faces (20△ + 12⬠) · 60 edges</div>
+        <div style="font-size:9px;opacity:0.7;">Maps to 60 ROOT0 permutations · Archimedean witness</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const tCanvas=$('#toroidCanvas'), tCtx=tCanvas.getContext('2d');
+const mCanvas=$('#mythosCanvas'), mCtx=mCanvas.getContext('2d');
+let pulseCount=0, isPulsing=false, currentBits=Array(12).fill(0), receiptLog=[], merkleRoot=null;
+let audioCtx; function beep(f,d=0.07,v=0.02,t='sine'){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d);}catch(e){}}
+async function sha256(txt){const b=new TextEncoder().encode(txt);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function merkle(leaves){if(!leaves.length)return null;let l=leaves.slice();while(l.length>1){const n=[];for(let i=0;i<l.length;i+=2){const L=l[i],R=l[i+1]||l[i];n.push(await sha256(L+R));}l=n;}return l[0];}
+function drawToroid(){tCtx.clearRect(0,0,tCanvas.width,tCanvas.height);const cx=150,cy=60,R=45,r=18;tCtx.beginPath();tCtx.ellipse(cx,cy,R,r,0,0,Math.PI*2);tCtx.strokeStyle='#8a7558';tCtx.lineWidth=1.5;tCtx.stroke();const n=currentBits.filter(b=>b).length||1;for(let i=0;i<n;i++){const a=(Date.now()*0.002+i*2*Math.PI/n)%(2*Math.PI);tCtx.beginPath();tCtx.arc(cx+R*Math.cos(a),cy+r*Math.sin(a),3,0,2*Math.PI);tCtx.fillStyle=currentBits[i]?'#4dff88':'#888';tCtx.fill();}requestAnimationFrame(drawToroid);}drawToroid();
+function buildGrid(){const groups=[{n:'A4',c:'var(--a4)',cls:'group-a4',s:9},{n:'A3',c:'var(--a3)',cls:'group-a3',s:6},{n:'A2',c:'var(--a2)',cls:'group-a2',s:3},{n:'A1',c:'var(--a1)',cls:'group-a1',s:0}];const g=$('#cavityGrid');g.innerHTML='';groups.forEach(gr=>{const d=document.createElement('div');d.className='cavity-group';d.innerHTML=`<div class="cavity-label" style="color:${gr.c}">${gr.n}</div><div class="cavities"></div>`;const c=d.querySelector('.cavities');for(let i=0;i<3;i++){const e=document.createElement('div');e.className=`cavity ${gr.cls}`;e.id=`cav-${gr.s+i}`;e.textContent='0';c.appendChild(e);}g.appendChild(d);});}buildGrid();
+function updateBits(b){for(let i=0;i<12;i++){const e=document.getElementById(`cav-${i}`);if(e){e.textContent=b[i]?'1':'0';e.classList.toggle('on',b[i]===1);}}const p=b.reduce((a,v,i)=>a|(v<<(11-i)),0);$('#hexVal').textContent='0x'+p.toString(16).toUpperCase().padStart(3,'0');$('#decVal').textContent=p;$('#binVal').textContent=b.join('');}
+function updateGates(g0,g1,g2,g3){[['gate0',g0],['gate1',g1],['gate2',g2],['gate3',g3]].forEach(([id,st])=>{const el=document.getElementById(id);if(!st){el.className='gate';return;}el.className='gate '+(st==='PASS'?'pass':'fail');el.querySelector('.g-state').textContent=st;});}
+function setTemp(k,ablaze){const d=$('#tempDisplay'),f=$('#tempFill');const p=Math.min(100,(k-4)/1200*100);f.style.width=p+'%';if(k>300){f.style.background='#ff4d4d';d.textContent=Math.round(k)+'°C';}else{f.style.background='var(--warn)';d.textContent=k+' K';}if(ablaze){document.body.classList.add('ablaze-effect');setTimeout(()=>document.body.classList.remove('ablaze-effect'),200);}}
+const phi=(1+Math.sqrt(5))/2;const icosi=((()=>{const ico=[[0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],[1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],[phi,0,1],[-phi,0,1],[phi,0,-1],[-phi,0,-1]].map(v=>v.map(c=>c/Math.sqrt(phi*phi+1)));const m=[];for(let i=0;i<ico.length;i++)for(let j=i+1;j<ico.length;j++){let d=0;for(let k=0;k<3;k++)d+=(ico[i][k]-ico[j][k])**2;if(Math.abs(d-4/(phi*phi+1))<0.01)m.push(ico[i].map((c,k)=>(c+ico[j][k])/2));}return m.map(v=>{const l=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return{x:v[0]/l,y:v[1]/l,z:v[2]/l};});})());let rot=0;function drawMythos(){mCtx.clearRect(0,0,mCanvas.width,mCanvas.height);const pts=icosi.map(v=>{const ca=Math.cos(rot),sa=Math.sin(rot);const x=v.x*ca-v.z*sa,z=v.x*sa+v.z*ca,y=v.y;const cb=Math.cos(0.4),sb=Math.sin(0.4);const y2=y*cb-z*sb,z2=y*sb+z*cb;const s=140/(z2+2.5);return{x:mCanvas.width/2+x*s,y:mCanvas.height/2-y2*s,d:z2,v};});pts.sort((a,b)=>b.d-a.d);const thr=0.86;for(let i=0;i<icosi.length;i++)for(let j=i+1;j<icosi.length;j++){const dot=icosi[i].x*icosi[j].x+icosi[i].y*icosi[j].y+icosi[i].z*icosi[j].z;if(dot>thr){const p1=pts.find(p=>p.v===icosi[i]),p2=pts.find(p=>p.v===icosi[j]);mCtx.beginPath();mCtx.moveTo(p1.x,p1.y);mCtx.lineTo(p2.x,p2.y);mCtx.strokeStyle='rgba(138,117,88,0.18)';mCtx.lineWidth=0.8;mCtx.stroke();}}pts.forEach(p=>{const pulse=isPulsing?2*Math.sin(Date.now()*0.01+p.d):0;const sz=2.5+pulse*0.3;mCtx.beginPath();mCtx.arc(p.x,p.y,sz,0,2*Math.PI);const t=(p.d+1.5)/3;const r=44+20*Math.sin(t*2),g=85+30*Math.cos(t*1.5),b=100+30*Math.sin(t);mCtx.fillStyle=`rgb(${r},${g},${b})`;mCtx.fill();});rot+=0.005;requestAnimationFrame(drawMythos);}drawMythos();
+async function pulse(){if(isPulsing)return;isPulsing=true;$('#pulseBtn').disabled=true;updateGates('PASS',null,null,null);setTemp(4,false);pulseCount++;$('#pulseCount').textContent=pulseCount;const intents=["transfer $4500","query lineage","deploy contract","audit logs","verify receipt","publish proof"];const intent=intents[Math.floor(Math.random()*intents.length)];const v=4;currentBits=[...v.toString(2).padStart(3,'0'),...v.toString(2).padStart(3,'0'),...v.toString(2).padStart(3,'0'),...v.toString(2).padStart(3,'0')].map(Number);updateBits(currentBits);beep(800);await new Promise(r=>setTimeout(r,300));updateGates('PASS','PASS',null,null);beep(1000);await new Promise(r=>setTimeout(r,300));updateGates('PASS','PASS','PASS',null);beep(1100);await new Promise(r=>setTimeout(r,300));updateGates('PASS','PASS','PASS','PASS');beep(1200);setTemp(1200,true);setTimeout(()=>beep(250,0.2,0.03,'sawtooth'),50);currentBits=Array(12).fill(0);updateBits(currentBits);await new Promise(r=>setTimeout(r,300));setTemp(4,false);updateGates('PASS',null,null,null);const ts=new Date().toISOString();const body={header:currentBits.join(''),intent,ts,a1:v,a2:v,a3:v,a4:v,gates:{g1:'PASS',g2:'PASS',g3:'PASS'}};const leaf=await sha256(JSON.stringify(body));const sig=(await sha256(leaf+'ROOT0'+ts)).slice(0,16);receiptLog.unshift({...body,leafHash:leaf,tpmSig:sig});if(receiptLog.length>10)receiptLog.length=10;merkleRoot=await merkle(receiptLog.map(r=>r.leafHash));$('#merkleRoot').textContent=merkleRoot?merkleRoot.slice(0,24)+'…':'—';$('#ledgerCount').textContent=receiptLog.length;$('#receiptBox').textContent=`[PULSE ${pulseCount}]
+intent: ${intent}
+ts: ${ts}
+A1:${v} A2:${v} A3:${v} A4:${v}
+leaf: ${leaf.slice(0,16)}…
+TPM sig: ${sig}
+Merkle: ${merkleRoot.slice(0,16)}…
+G0 LOCK: SSH 21/22 PASS`;isPulsing=false;$('#pulseBtn').disabled=false;}
+document.addEventListener('DOMContentLoaded',()=>{$('#pulseBtn').addEventListener('click',pulse);updateGates('PASS',null,null,null);});
+</script>
+</body>
+</html>
