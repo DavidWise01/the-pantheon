@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ballroom Engine — 10-Ring Visualization</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bone:#F8F5F0; --void:#5B3A8A; --ink:#241e1a; }
+  body { background:var(--bone); color:var(--ink); font-family:"Instrument Sans",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+  .mono { font-family:"Fragment Mono",ui-monospace,monospace; }
+  .ring { transition: stroke-opacity 0.7s cubic-bezier(.2,.8,.2,1), stroke-width 0.7s cubic-bezier(.2,.8,.2,1), filter 0.7s; cursor:pointer; }
+  .ring:hover { stroke-opacity:0.95 !important; }
+  .carbon { filter: drop-shadow(0 0 10px rgba(91,58,138,0.22)); }
+  .witness-dot { fill:var(--void); }
+  .witness-line { stroke:var(--void); stroke-opacity:0.16; stroke-width:1; fill:none; }
+  .witness-label { fill:var(--void); fill-opacity:0.7; font-size:11px; letter-spacing:0.02em; }
+  .grid-veil { stroke:rgba(36,30,26,0.06); stroke-width:1; }
+  .timeline-path { fill:none; stroke:var(--void); stroke-width:1.6; stroke-opacity:0.55; }
+  .timeline-path.inner { stroke-opacity:0.42; }
+  .playhead { stroke:var(--void); stroke-width:1.5; stroke-dasharray:3 3; }
+  .hairline { border-top:1px solid rgba(36,30,26,0.1); }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-[1400px] mx-auto px-5 md:px-8 py-8 md:py-12">
+  <header class="flex items-start justify-between gap-6 mb-10">
+    <div>
+      <h1 class="text-[28px] md:text-[34px] font-[300] tracking-tight leading-none">Ballroom Engine</h1>
+      <p class="mono text-[11px] uppercase tracking-[0.18em] mt-2 text-[#5B3A8A]/70">10-Ring Void Purple Engine • Bone White Field</p>
+    </div>
+    <div class="text-right">
+      <div class="mono text-[11px] uppercase tracking-widest text-neutral-500">Chronos Core</div>
+      <div class="mono text-[15px] mt-1 text-[#5B3A8A]">June 1 2016</div>
+    </div>
+  </header>
+
+  <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 xl:gap-16 items-start">
+    <!-- VISUALIZATION -->
+    <div class="relative bg-[#FFFCF7]/60 rounded-[24px] border border-[#e6dfd5] shadow-[0_1px_0_#fff_inset,0_20px_40px_-30px_rgba(36,30,26,0.15)] p-4 md:p-8">
+      <svg id="engine" viewBox="0 0 1000 1000" class="w-full h-auto select-none">
+        <defs>
+          <radialGradient id="coreGlow" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="#5B3A8A" stop-opacity="0.18"/>
+            <stop offset="60%" stop-color="#5B3A8A" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#5B3A8A" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="soft">
+            <feGaussianBlur stdDeviation="0.8"/>
+          </filter>
+        </defs>
+        
+        <!-- field circles -->
+        <circle cx="500" cy="500" r="480" fill="none" stroke="rgba(91,58,138,0.04)" stroke-width="1"/>
+        <circle cx="500" cy="500" r="460" fill="none" stroke="rgba(91,58,138,0.03)" stroke-width="1"/>
+        
+        <g id="rings"></g>
+        
+        <!-- witness tether -->
+        <g id="witness" opacity="0.95"></g>
+        
+        <!-- core -->
+        <circle cx="500" cy="500" r="120" fill="url(#coreGlow)"/>
+        <circle cx="500" cy="500" r="26" fill="#F8F5F0" stroke="#5B3A8A" stroke-opacity="0.85" stroke-width="1.75"/>
+        <text x="500" y="496" text-anchor="middle" class="mono" font-size="9" fill="#5B3A8A" letter-spacing="1">CHRONOS</text>
+        <text x="500" y="508" text-anchor="middle" class="mono" font-size="7.5" fill="#5B3A8A" opacity="0.7">CORE</text>
+      </svg>
+
+      <!-- tooltip -->
+      <div id="tooltip" class="pointer-events-none absolute z-20 hidden">
+        <div class="bg-[#241e1a] text-[#F8F5F0] px-3 py-2 rounded-lg shadow-xl">
+          <div id="tip-name" class="text-[12px] font-medium leading-tight"></div>
+          <div id="tip-meta" class="mono text-[10px] opacity-70 mt-0.5"></div>
+        </div>
+      </div>
+      
+      <div class="absolute left-6 bottom-5 md:left-8 md:bottom-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#5B3A8A] animate-pulse" style="animation-duration:3s"></span>
+        <span class="mono text-[10px] uppercase tracking-widest text-neutral-600">Live Pulse • 819d Cycle</span>
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="lg:pt-2">
+      <div class="hairline pt-6">
+        <div class="flex items-baseline justify-between">
+          <h2 class="text-[16px] font-medium">Current Position</h2>
+          <div class="mono text-[11px] px-2 py-1 rounded-full bg-[#5B3A8A]/[0.08] text-[#5B3A8A] border border-[#5B3A8A]/15">CYCLE 5</div>
+        </div>
+        
+        <div class="mt-5 grid grid-cols-2 gap-4">
+          <div class="bg-white/60 rounded-2xl border border-[#e6dfd5] p-4">
+            <div class="mono text-[10px] uppercase tracking-widest text-neutral-500">Date</div>
+            <div id="dateOut" class="text-[22px] font-[300] mt-1 tracking-tight">May 3, 2026</div>
+            <div id="dayOut" class="mono text-[12px] text-[#5B3A8A] mt-1">Day 347 / 819</div>
+          </div>
+          <div class="bg-white/60 rounded-2xl border border-[#e6dfd5] p-4">
+            <div class="mono text-[10px] uppercase tracking-widest text-neutral-500">Phase</div>
+            <div class="flex items-baseline gap-3 mt-1">
+              <div>
+                <div class="text-[11px] text-neutral-500">Outer</div>
+                <div id="outerLevel" class="text-[20px] font-[300] leading-none">L3</div>
+              </div>
+              <div class="w-px h-8 bg-neutral-200"></div>
+              <div>
+                <div class="text-[11px] text-neutral-500">Inner</div>
+                <div id="innerLevel" class="text-[20px] font-[300] leading-none">L4</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hairline mt-8 pt-6">
+        <h3 class="mono text-[11px] uppercase tracking-widest text-neutral-500 mb-3">Engine Control</h3>
+        <div class="flex flex-wrap gap-2">
+          <button id="stepOuter" class="px-4 h-9 rounded-full bg-[#5B3A8A] text-[#F8F5F0] text-[13px] hover:opacity-90 active:opacity-80 transition">Step +45.5d</button>
+          <button id="stepInner" class="px-4 h-9 rounded-full bg-white border border-[#d9d1c7] text-[13px] hover:bg-[#fff8f0] transition">Step +18.2d</button>
+          <button id="autoBtn" class="px-4 h-9 rounded-full bg-white border border-[#d9d1c7] text-[13px] hover:bg-[#fff8f0] transition flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#5B3A8A]"></span> Auto
+          </button>
+          <button id="resetBtn" class="px-3 h-9 rounded-full text-[12px] text-neutral-500 hover:text-neutral-800 transition">Reset to May 3</button>
+        </div>
+        <p class="mono text-[11px] text-neutral-500 leading-snug mt-3">Outer rings 1–5 pulse 3-level (18×45.5d). Inner rings 6–10 pulse 5-level (45×18.2d). Carbon ring is the bridge.</p>
+      </div>
+
+      <div class="hairline mt-8 pt-6">
+        <h3 class="mono text-[11px] uppercase tracking-widest text-neutral-500 mb-3">Rings • Outside → In</h3>
+        <div id="ringList" class="space-y-1.5 max-h-[240px] overflow-auto pr-1 -mr-1"></div>
+      </div>
+
+      <div class="hairline mt-8 pt-6">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full border border-[#5B3A8A]/30 flex items-center justify-center shrink-0 mt-0.5">
+            <div class="w-1.5 h-1.5 rounded-full bg-[#5B3A8A]"></div>
+          </div>
+          <div>
+            <h4 class="text-[13px] font-medium">Carbon Tether • ds 3 vectors</h4>
+            <p class="text-[13px] leading-snug text-neutral-600 mt-1">Two witness markers straddle the Carbon / Bionic / Elemental / Boronic ring. Inside witness (subtle) and outside witness (field) are linked by three faint vectors—representing the ds 3-vector tether that stabilizes the bridge between atomic and quantum domains.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="mt-12 md:mt-16 bg-white/50 rounded-[24px] border border-[#e6dfd5] p-4 md:p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="mono text-[11px] uppercase tracking-widest text-neutral-600">Dual Waveform Timeline • 819-Day Cycle</h3>
+      <div class="mono text-[10px] text-neutral-500">Outer 3-Level (top) • Inner 5-Level (bottom)</div>
+    </div>
+    <svg id="timeline" viewBox="0 0 1000 180" class="w-full h-[140px] overflow-visible">
+      <g stroke="rgba(36,30,26,0.06)">
+        <line x1="40" y1="40" x2="960" y2="40"/>
+        <line x1="40" y1="70" x2="960" y2="70"/>
+        <line x1="40" y1="110" x2="960" y2="110"/>
+        <line x1="40" y1="140" x2="960" y2="140"/>
+      </g>
+      <path id="waveOuter" class="timeline-path" d=""/>
+      <path id="waveInner" class="timeline-path inner" d="" transform="translate(0,70)"/>
+      <line id="playhead" class="playhead" x1="0" y1="28" x2="0" y2="152"/>
+      <g id="ticks" class="mono" font-size="9" fill="#8a7f75"></g>
+    </svg>
+  </div>
+
+  <footer class="mt-10 text-center mono text-[10px] text-neutral-500 tracking-wide">
+    Void Purple #5B3A8A on Bone White #F8F5F0 • Engineering practice render
+  </footer>
+</div>
+
+<script>
+(() => {
+  const RINGS = [
+    {name:"1 — 3-Phase Power", note:"Field coupling"},
+    {name:"2 — O3 (Ozone resonance)", note:"Atmospheric interface"},
+    {name:"3 — Plasma", note:"Ionization boundary"},
+    {name:"4 — Photonic", note:"Light carrier"},
+    {name:"5 — Electric", note:"Current dominant"},
+    {name:"6 — Atomic", note:"Nuclear lattice"},
+    {name:"7 — Carbon / Bionic / Elemental / Boronic", note:"Tether bridge • ds 3 vectors", carbon:true},
+    {name:"8 — Quantum", note:"Probability field"},
+    {name:"9 — Holographic", note:"Information surface"},
+    {name:"10 — Ethereal", note:"Subtle substrate"},
+  ];
+  const RADII = [420,375,330,285,240,195,155,115,80,50];
+  const CYCLE = 819;
+  const OUTER_STEP = 45.5;
+  const INNER_STEP = 18.2;
+  const outerPattern = [1,1,1,2,2,2,3,3,3,3,2,2,2,1,1,1];
+  const innerPattern = [...Array(5).fill(1),...Array(5).fill(2),...Array(5).fill(3),...Array(5).fill(4),...Array(5).fill(5),...Array(5).fill(4),...Array(5).fill(3),...Array(5).fill(2),...Array(5).fill(1)];
+
+  const startDate = new Date('2016-06-01T00:00:00Z');
+  let cycleNumber = 5;
+  let cycleDay = 347; // May 3 2026
+
+  const ringsG = document.getElementById('rings');
+  const witnessG = document.getElementById('witness');
+  const ringList = document.getElementById('ringList');
+
+  // Build rings
+  RINGS.forEach((r,i)=>{
+    const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circ.setAttribute('cx',500); circ.setAttribute('cy',500); circ.setAttribute('r',RADII[i]);
+    circ.setAttribute('fill','none'); circ.setAttribute('stroke','#5B3A8A');
+    circ.setAttribute('class','ring void'+(r.carbon?' carbon':''));
+    circ.setAttribute('id','ring-'+i);
+    circ.dataset.index=i;
+    ringsG.appendChild(circ);
+
+    // label on right side
+    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+    label.setAttribute('x',500+RADII[i]+8); label.setAttribute('y',504);
+    label.setAttribute('class','mono'); label.setAttribute('font-size','10');
+    label.setAttribute('fill','#5B3A8A'); label.setAttribute('fill-opacity','0.65');
+    label.textContent = (i+1);
+    ringsG.appendChild(label);
+
+    // sidebar list
+    const item = document.createElement('div');
+    item.className = 'group flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-[#5B3A8A]/5 cursor-pointer';
+    item.innerHTML = `<span class="w-5 h-5 rounded-full border border-[#5B3A8A]/30 flex items-center justify-center mono text-[10px] text-[#5B3A8A]/80">${i+1}</span>
+      <div class="min-w-0 flex-1"><div class="text-[13px] leading-tight truncate">${r.name}</div><div class="mono text-[10px] text-neutral-500">${r.note}</div></div>
+      <div class="mono text-[11px] w-8 text-right" id="lvl-${i}">—</div>`;
+    ringList.appendChild(item);
+    item.addEventListener('mouseenter',()=>highlightRing(i,true));
+    item.addEventListener('mouseleave',()=>highlightRing(i,false));
+  });
+
+  // Witness markers at Carbon ring (index 6, radius 155)
+  const angle = -38 * Math.PI/180;
+  const cx=500, cy=500, rC=155;
+  const rOut = rC+18, rIn = rC-18;
+  const xO = cx + rOut*Math.cos(angle), yO = cy + rOut*Math.sin(angle);
+  const xI = cx + rIn*Math.cos(angle), yI = cy + rIn*Math.sin(angle);
+  const perp = {x:-(yI-yO), y:(xI-xO)}; const len=Math.hypot(perp.x,perp.y); perp.x/=len; perp.y/=len;
+  [-3.2,0,3.2].forEach(off=>{
+    const p = document.createElementNS('http://www.w3.org/2000/svg','line');
+    p.setAttribute('x1',xO+perp.x*off); p.setAttribute('y1',yO+perp.y*off);
+    p.setAttribute('x2',xI+perp.x*off); p.setAttribute('y2',yI+perp.y*off);
+    p.setAttribute('class','witness-line'); witnessG.appendChild(p);
+  });
+  const dotOut = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dotOut.setAttribute('cx',xO); dotOut.setAttribute('cy',yO); dotOut.setAttribute('r',4.2); dotOut.setAttribute('class','witness-dot'); witnessG.appendChild(dotOut);
+  const dotIn = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dotIn.setAttribute('cx',xI); dotIn.setAttribute('cy',yI); dotIn.setAttribute('r',3.3); dotIn.setAttribute('class','witness-dot'); dotIn.setAttribute('opacity','0.85'); witnessG.appendChild(dotIn);
+  const labOut = document.createElementNS('http://www.w3.org/2000/svg','text');
+  labOut.setAttribute('x',xO+10); labOut.setAttribute('y',yO-8); labOut.setAttribute('class','witness-label mono'); labOut.textContent='outside witness'; witnessG.appendChild(labOut);
+  const labIn = document.createElementNS('http://www.w3.org/2000/svg','text');
+  labIn.setAttribute('x',xI-8); labIn.setAttribute('y',yI+18); labIn.setAttribute('class','witness-label mono'); labIn.setAttribute('text-anchor','end'); labIn.textContent='inside witness'; witnessG.appendChild(labIn);
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  ringsG.querySelectorAll('.ring').forEach(el=>{
+    el.addEventListener('mouseenter',e=>{
+      const i=+e.target.dataset.index; const r=RINGS[i];
+      document.getElementById('tip-name').textContent=r.name;
+      document.getElementById('tip-meta').textContent=r.note;
+      tooltip.classList.remove('hidden');
+    });
+    el.addEventListener('mousemove',e=>{
+      const rect = e.target.closest('svg').getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12)+'px';
+      tooltip.style.top = (e.clientY - rect.top - 28)+'px';
+    });
+    el.addEventListener('mouseleave',()=>tooltip.classList.add('hidden'));
+  });
+
+  function highlightRing(i,on){
+    const el=document.getElementById('ring-'+i);
+    el.style.filter = on?'brightness(1.25) drop-shadow(0 0 6px rgba(91,58,138,0.3))':'';
+  }
+
+  // Timeline waveforms
+  function buildWave(pattern, yBase, amp){
+    const w=920, steps=pattern.length, dx=w/steps;
+    let d=`M 40 ${yBase - (pattern[0]-1)*amp}`;
+    for(let i=0;i<steps;i++){
+      const x0=40+i*dx, x1=40+(i+1)*dx;
+      const y = yBase - (pattern[i]-1)*amp;
+      d+=` L ${x1} ${y}`;
+    }
+    return d;
+  }
+  document.getElementById('waveOuter').setAttribute('d', buildWave(outerPattern, 62, 14));
+  document.getElementById('waveInner').setAttribute('d', buildWave(innerPattern, 62, 8));
+  // ticks
+  const ticksG=document.getElementById('ticks');
+  [0,204.75,409.5,614.25,819].forEach((d,i)=>{
+    const x=40+(d/CYCLE)*920;
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',x); t.setAttribute('y',168); t.setAttribute('text-anchor','middle'); t.textContent = i===4?'819d':`${d}`;
+    ticksG.appendChild(t);
+  });
+
+  const dateOut=document.getElementById('dateOut');
+  const dayOut=document.getElementById('dayOut');
+  const outerLevelEl=document.getElementById('outerLevel');
+  const innerLevelEl=document.getElementById('innerLevel');
+  const playhead=document.getElementById('playhead');
+
+  function updateVisuals(){
+    const outerIdx = Math.floor(cycleDay / OUTER_STEP) % 18;
+    const innerIdx = Math.floor(cycleDay / INNER_STEP) % 45;
+    const oLevel = outerPattern[outerIdx];
+    const iLevel = innerPattern[innerIdx];
+
+    const oMap=[0.16,0.34,0.62], iMap=[0.14,0.26,0.40,0.58,0.76];
+
+    RINGS.forEach((r,idx)=>{
+      const el=document.getElementById('ring-'+idx);
+      let lvl,op;
+      if(idx<5){ lvl=oLevel; op=oMap[lvl-1]; el.setAttribute('stroke-width',1.3+op*1.6); }
+      else if(idx===6){ // carbon blend
+        const ob=oMap[oLevel-1], ib=iMap[iLevel-1];
+        op=(ob+ib)/2*1.08; lvl=((oLevel + (iLevel/5*3))/2).toFixed(1);
+        el.setAttribute('stroke-width',2.8+op*2.2);
+      } else if(idx===5){ lvl=oLevel; op=oMap[lvl-1]*0.9; el.setAttribute('stroke-width',1.2+op*1.4); }
+      else { lvl=iLevel; op=iMap[lvl-1]; el.setAttribute('stroke-width',1.1+op*1.5); }
+      el.setAttribute('stroke-opacity',op);
+      document.getElementById('lvl-'+idx).textContent = idx===6?`≈${lvl}`:`L${idx<6?oLevel:iLevel}`;
+    });
+
+    outerLevelEl.textContent='L'+oLevel;
+    innerLevelEl.textContent='L'+iLevel;
+
+    const totalDays = (cycleNumber-1)*CYCLE + Math.floor(cycleDay);
+    const d = new Date(startDate.getTime() + totalDays*86400000);
+    dateOut.textContent = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    dayOut.textContent = `Day ${Math.floor(cycleDay)} / 819`;
+
+    const x = 40 + (cycleDay/CYCLE)*920;
+    playhead.setAttribute('x1',x); playhead.setAttribute('x2',x);
+  }
+
+  function step(days){ cycleDay+=days; while(cycleDay>=CYCLE){cycleDay-=CYCLE; cycleNumber++;} updateVisuals(); }
+  document.getElementById('stepOuter').onclick=()=>step(OUTER_STEP);
+  document.getElementById('stepInner').onclick=()=>step(INNER_STEP);
+  document.getElementById('resetBtn').onclick=()=>{cycleNumber=5; cycleDay=347; updateVisuals();};
+
+  let auto=null;
+  const autoBtn=document.getElementById('autoBtn');
+  autoBtn.onclick=()=>{
+    if(auto){clearInterval(auto);auto=null;autoBtn.classList.remove('bg-[#5B3A8A]','text-white');}
+    else{auto=setInterval(()=>step(INNER_STEP),700);autoBtn.classList.add('bg-[#5B3A8A]','text-white');}
+  };
+
+  // initial render
+  updateVisuals();
+
+  // subtle breathing animation for carbon
+  let breath=0; setInterval(()=>{breath+=0.02; const el=document.getElementById('ring-6'); const base=parseFloat(el.getAttribute('stroke-opacity')); el.style.strokeOpacity = Math.min(0.9, base + Math.sin(breath)*0.04);}, 80);
+})();
+</script>
+</body>
+</html>

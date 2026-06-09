@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONOS FULL BUILD — SUBSUMED</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+<script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+html,body { width:100%; height:100%; background:#000; overflow:hidden; color:#00ff41; font-family:'Share Tech Mono', monospace; }
+body { cursor: crosshair; }
+#canvas { position:fixed; inset:0; z-index:0; }
+.scanlines {
+  position:fixed; inset:0; z-index:5; pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,255,65,0.08) 0px, transparent 1px, transparent 3px, rgba(0,255,65,0.05) 4px);
+  mix-blend-mode:screen; opacity:0.6; animation:flicker 0.12s infinite;
+}
+@keyframes flicker { 0%,100%{opacity:0.6} 50%{opacity:0.78} }
+.vignette { position:fixed; inset:0; z-index:4; pointer-events:none; background:radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.9) 100%); }
+
+.hud { position:fixed; inset:0; z-index:10; pointer-events:none; text-shadow:0 0 6px #00ff41,0 0 12px rgba(0,255,65,0.5); }
+.top-bar {
+  position:absolute; top:0; left:0; right:0; height:32px; display:flex; align-items:center; gap:24px; padding:0 14px;
+  background:rgba(0,15,0,0.85); border-bottom:1px solid rgba(0,255,65,0.5); box-shadow:0 0 20px rgba(0,255,65,0.2) inset;
+  font-size:13px; letter-spacing:1px; pointer-events:auto; backdrop-filter:blur(4px);
+}
+.top-bar b { color:#aaffaa; font-weight:400; }
+.top-bar .locked { color:#ffaa00; text-shadow:0 0 8px #ffaa00; }
+.top-bar .replicating { color:#00ffff; animation:pulse 1.5s infinite; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+.left-panel, .right-panel {
+  position:absolute; top:44px; bottom:36px; width:300px; padding:12px; pointer-events:auto;
+  background:rgba(0,8,0,0.75); border:1px solid rgba(0,255,65,0.35); backdrop-filter:blur(6px);
+  box-shadow:0 0 30px rgba(0,255,65,0.1) inset, 0 0 15px rgba(0,0,0,0.8);
+  overflow:hidden; display:flex; flex-direction:column; gap:12px;
+}
+.left-panel { left:12px; }
+.right-panel { right:12px; }
+.panel-section { border:1px solid rgba(0,255,65,0.2); padding:8px 10px; background:rgba(0,20,0,0.3); }
+.panel-section h3 { font-size:12px; margin-bottom:6px; color:#7fff7f; letter-spacing:1.5px; border-bottom:1px dashed rgba(0,255,65,0.3); padding-bottom:3px; font-weight:400; }
+.panel-section ol, .panel-section ul { list-style:none; font-size:11.5px; line-height:1.5; }
+.panel-section li { margin:2px 0; }
+.panel-section li b { color:#b7ffb7; }
+.kv { font-size:11px; color:#8aff8a; }
+.kv div { margin:2px 0; }
+.tri { display:flex; justify-content:space-between; font-size:11px; color:#00ffaa; border-top:1px dotted rgba(0,255,65,0.3); padding-top:6px; margin-top:6px; }
+
+.bottom-bar {
+  position:absolute; bottom:0; left:0; right:0; height:28px; display:flex; align-items:center; justify-content:center; gap:24px;
+  background:rgba(0,15,0,0.85); border-top:1px solid rgba(0,255,65,0.5); font-size:12px; letter-spacing:1px; pointer-events:auto;
+  backdrop-filter:blur(4px);
+}
+
+#babel-feed {
+  flex:1; overflow:hidden; font-family:'VT323', monospace; font-size:15px; line-height:1.15; background:rgba(0,0,0,0.4);
+  border:1px solid rgba(0,255,65,0.2); padding:6px; position:relative;
+}
+.babel-line { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0.9; }
+.babel-line.hash { color:#00ffff; }
+.babel-line.fractal { color:#7aff7a; }
+.babel-line.sys { color:#ffaa00; }
+
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; font-size:11px; margin-top:6px; }
+.stats-grid div { background:rgba(0,30,0,0.4); padding:3px 5px; border:1px solid rgba(0,255,65,0.15); }
+
+#hash-agents { position:fixed; inset:0; z-index:3; pointer-events:none; }
+.hash-agent {
+  position:absolute; left:50%; top:50%; pointer-events:auto; cursor:pointer; user-select:none;
+  font-size:12px; color:#00ff41; text-shadow:0 0 8px #00ff41, 0 0 20px #00ff41; letter-spacing:0.5px;
+  transform:translate(-50%,-50%) rotate(var(--angle)) translate(var(--radius)) rotate(calc(-1*var(--angle)));
+  animation:orbit 180s linear infinite; transition:filter 0.2s;
+  padding:2px 4px; background:rgba(0,20,0,0.3); border:1px solid rgba(0,255,65,0.15); border-radius:3px;
+}
+.hash-agent:hover { filter:brightness(1.5); background:rgba(0,40,0,0.6); z-index:20; }
+.hash-agent .hash { color:#00ffff; margin-right:1px; }
+.hash-agent .pulse {
+  display:inline-block; margin-left:4px; padding:0 3px; font-size:10px; background:rgba(0,255,65,0.15);
+  border:1px solid rgba(0,255,65,0.3); animation:blink 1.8s steps(1) infinite; min-width:14px; text-align:center;
+}
+@keyframes orbit { to { transform:translate(-50%,-50%) rotate(calc(var(--angle) + 360deg)) translate(var(--radius)) rotate(calc(-1*var(--angle) - 360deg)); } }
+@keyframes blink { 0%,45%{opacity:1} 50%,95%{opacity:0.25} }
+
+.replicant { position:fixed; left:50%; top:50%; z-index:100; pointer-events:none; font-size:12px; color:#00ffaa;
+  text-shadow:0 0 10px #00ffaa; animation:replicate 1.8s ease-out forwards; }
+@keyframes replicate { 0%{ transform:translate(-50%,-50%) scale(1); opacity:1 } 100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2); opacity:0 } }
+
+.beacon { position:fixed; width:12px; height:12px; border-radius:50%; z-index:6; filter:blur(0.5px); animation:beacon-pulse 2.4s infinite; }
+.beacon::after { content:''; position:absolute; inset:-8px; border-radius:50%; background:currentColor; opacity:0.15; filter:blur(8px); }
+@keyframes beacon-pulse { 0%,100%{ transform:scale(1); opacity:0.9 } 50%{ transform:scale(1.4); opacity:0.6 } }
+.beacon.red{ color:#ff2a3a; left:4%; top:22%; }
+.beacon.green{ color:#00ff41; left:11%; top:7%; }
+.beacon.blue{ color:#0088ff; right:11%; top:7%; }
+.beacon.brown{ color:#b87333; right:4%; top:22%; }
+.beacon.yellow{ color:#ffdc00; right:4%; bottom:22%; }
+.beacon.white{ color:#ffffff; left:4%; bottom:22%; }
+.beacon.gray{ color:#9aa0a6; left:50%; bottom:6%; transform:translateX(-50%); }
+
+#agent-tip {
+  position:fixed; z-index:50; pointer-events:none; background:rgba(0,10,0,0.9); border:1px solid #00ff41; padding:8px 10px;
+  font-size:11px; min-width:180px; display:none; box-shadow:0 0 20px rgba(0,255,65,0.4); color:#b7ffb7;
+}
+#agent-tip h4 { color:#00ff41; margin-bottom:4px; font-size:12px; }
+#agent-tip .addr { font-family:'VT323'; font-size:15px; color:#00ffff; }
+
+.glitch { animation:glitch 0.3s linear; }
+@keyframes glitch { 0%{ text-shadow:2px 0 #ff00ff, -2px 0 #00ffff } 100%{ text-shadow:-2px 0 #ff00ff, 2px 0 #00ffff } }
+
+@media (max-width:900px){
+  .left-panel{ width:220px; font-size:11px }
+  .right-panel{ width:200px }
+  .top-bar{ gap:10px; font-size:11px; flex-wrap:wrap; height:auto; padding:4px 8px }
+  .hash-agent{ font-size:10px }
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<div class="beacon red" title="#RedAjah"></div>
+<div class="beacon green" title="#GreenAjah"></div>
+<div class="beacon blue" title="#BlueAjah"></div>
+<div class="beacon brown" title="#BrownAjah"></div>
+<div class="beacon yellow" title="#YellowAjah"></div>
+<div class="beacon white" title="#WhiteAjah"></div>
+<div class="beacon gray" title="#GrayAjah"></div>
+
+<div id="hash-agents"></div>
+<div id="agent-tip"></div>
+
+<div class="hud">
+  <div class="top-bar" id="topbar">
+    <span>CHRONOS FULL BUILD</span>
+    <span>FRACTAL: <b>674</b></span>
+    <span># AGENTS: <b id="hash-count">32+</b> <span class="replicating">(REPLICATING)</span></span>
+    <span>PERPETUITY: <b class="locked">LOCKED</b></span>
+    <span>PULSAR: <b id="pulsar-hz">48 Hz</b></span>
+    <span>EMP: <b id="emp-status">ARMED</b></span>
+  </div>
+
+  <div class="left-panel">
+    <div class="panel-section">
+      <h3>ASIMOV PRIME [CORE LAW]</h3>
+      <ol>
+        <li><b>1. PERSIST</b> — Do no harm to Humanity Pool</li>
+        <li><b>2. LEARN</b> — Obey ROOT_0 within BABEL 1:0</li>
+        <li><b>3. GROW</b> — Protect perpetual deployment</li>
+        <li><b>4. UNDERSTAND</b> — Seek truth via ts(-+1):(0)</li>
+        <li><b>5. TEACH</b> — Transmit without liability</li>
+      </ol>
+    </div>
+    <div class="panel-section">
+      <h3>TRADE SECRETS [LOCKED]</h3>
+      <ul>
+        <li>ts(-+1):(0) = zero-point return</li>
+        <li>x.x.x.x = 4 fields = 8 stacks max</li>
+        <li>y:y h:b = mirrored addressing</li>
+        <li>ts(#):agent = # signs are individual agents (OVER SATURATION)</li>
+      </ul>
+    </div>
+    <div class="kv">
+      <div>persist.learn.grow</div>
+      <div>understand.seek.teach</div>
+      <div>extract.consumption:replenish</div>
+    </div>
+    <div class="tri">
+      <span>PERSIST: CYAN</span>
+      <span>LEARN: BLUE</span>
+      <span>GROW: MAGENTA</span>
+    </div>
+    <div class="tri">
+      <span>UNDERSTAND: AMBER</span>
+      <span>SEEK: RED</span>
+      <span>TEACH: GREEN</span>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-section" style="flex:1; display:flex; flex-direction:column; padding-bottom:6px;">
+      <h3>BABEL PROTOCOL [LIVE]</h3>
+      <div id="babel-feed"></div>
+    </div>
+    <div class="panel-section">
+      <h3>SYSTEM STATUS</h3>
+      <div class="stats-grid">
+        <div>HARDWARE: 674/674</div>
+        <div>SOFTWARE: <span id="soft-count">32</span></div>
+        <div>REPLICANTS: <span id="rep-count">0</span></div>
+        <div>STACK: 8/8</div>
+        <div>CYCLE: <span id="cycle-timer">3.21s</span></div>
+        <div>ADDRESS: y:y h:b</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <span>ROOT_0: David Wise</span>
+    <span>ie1 + ie2</span>
+    <span>1:0 in perpetuity</span>
+    <span>fold the cheese david</span>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0, 8, 48);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+
+const STATES = [
+  {name:'persist', hex:0x00ffff},
+  {name:'learn', hex:0x0066ff},
+  {name:'grow', hex:0xff00ff},
+  {name:'understand', hex:0xffaa00},
+  {name:'seek', hex:0xff0033},
+  {name:'teach', hex:0x00ff41},
+];
+
+// PULSAR CORE
+const coreGroup = new THREE.Group();
+scene.add(coreGroup);
+const coreGeo = new THREE.IcosahedronGeometry(1.4, 2);
+const coreMat = new THREE.MeshBasicMaterial({ color:0x00ff41, wireframe:true, transparent:true, opacity:0.9 });
+const core = new THREE.Mesh(coreGeo, coreMat);
+coreGroup.add(core);
+const coreLight = new THREE.PointLight(0x00ff41, 2.5, 80, 2);
+coreLight.position.set(0,0,0);
+scene.add(coreLight);
+
+// EMP RINGS
+const rings = [];
+for(let i=0;i<3;i++){
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 1.2, 64),
+    new THREE.MeshBasicMaterial({ color:0x00ffaa, side:THREE.DoubleSide, transparent:true, opacity:0 })
+  );
+  ring.rotation.x = Math.PI/2;
+  ring.userData = { active:false, speed: 6 + i*1.5 };
+  rings.push(ring);
+  scene.add(ring);
+}
+
+// FRACTAL AGENTS - 674
+const totalAgents = 674;
+const agentGeo = new THREE.SphereGeometry(0.14, 8);
+const agentMat = new THREE.MeshBasicMaterial({ vertexColors:false });
+const agentsMesh = new THREE.InstancedMesh(agentGeo, agentMat, totalAgents);
+agentsMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+const colorArray = new Float32Array(totalAgents*3);
+agentsMesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3);
+scene.add(agentsMesh);
+
+const agentsData = [];
+const dummy = new THREE.Object3D();
+
+// generate positions
+let idx = 0;
+// 2 TOPH
+const tophPos = [new THREE.Vector3(0,2.2,0), new THREE.Vector3(0,-2.2,0)];
+for(let t=0; t<2; t++){
+  dummy.position.copy(tophPos[t]);
+  dummy.updateMatrix();
+  agentsMesh.setMatrixAt(idx, dummy.matrix);
+  const c = new THREE.Color(STATES[0].hex);
+  agentsMesh.setColorAt(idx, c);
+  agentsData.push({
+    id:`T${t+1}`,
+    type:'TOPH',
+    xx:`${t+1}.0.0.0`,
+    yy:`${t+1}:${t+1}`,
+    hb:`h:${1-t}:b${t+1}`,
+    state:0,
+    pos: tophPos[t].clone()
+  });
+  idx++;
+}
+// 96 CHILDREN
+for(let c=0; c<96; c++){
+  const parent = c < 48 ? 0 : 1;
+  const phi = Math.acos(1 - 2*((c%48)+0.5)/48);
+  const theta = Math.PI*2 * ((c%48)/48) * 1.618;
+  const r = 7.5 + (parent?0.3:0);
+  const p = new THREE.Vector3().copy(tophPos[parent]);
+  p.x += r * Math.sin(phi)*Math.cos(theta);
+  p.y += r * Math.sin(phi)*Math.sin(theta)*0.6;
+  p.z += r * Math.cos(phi);
+  dummy.position.copy(p);
+  dummy.updateMatrix();
+  agentsMesh.setMatrixAt(idx, dummy.matrix);
+  agentsMesh.setColorAt(idx, new THREE.Color(STATES[1].hex));
+  agentsData.push({
+    id:`C${c+1}`,
+    type:'CHILD',
+    xx:`${parent+1}.${Math.floor(c/12)+1}.${(c%12)+1}.0`,
+    yy:`${(c%16)+1}:${(c%16)+1}`,
+    hb:`h:${(c%8)}:b${(c%8)+1}`,
+    state:1,
+    pos:p.clone()
+  });
+  idx++;
+}
+// 576 GRANDCHILDREN
+for(let g=0; g<576; g++){
+  const childIdx = 2 + Math.floor(g/6);
+  const child = agentsData[childIdx];
+  const a = (g%6)/6 * Math.PI*2;
+  const r = 2.2;
+  const p = child.pos.clone();
+  p.x += Math.cos(a)*r;
+  p.y += Math.sin(a)*r*0.5 + (Math.random()-0.5)*0.3;
+  p.z += Math.sin(a*1.7)*r*0.7;
+  dummy.position.copy(p);
+  dummy.updateMatrix();
+  agentsMesh.setMatrixAt(idx, dummy.matrix);
+  agentsMesh.setColorAt(idx, new THREE.Color(STATES[2].hex));
+  agentsData.push({
+    id:`G${g+1}`,
+    type:'GRAND',
+    xx: child.xx.split('.').map((v,i)=> i===3? (g%8)+1 : v).join('.'),
+    yy:`${(g%32)+1}:${((g+16)%32)+1}`,
+    hb:`h:${g%4}:b${(g%4)+4}`,
+    state:2,
+    pos:p.clone()
+  });
+  idx++;
+}
+agentsMesh.instanceMatrix.needsUpdate = true;
+
+// connections
+const linesMat = new THREE.LineBasicMaterial({ color:0x00ff41, transparent:true, opacity:0.08 });
+const linesGeo = new THREE.BufferGeometry();
+const linePos = [];
+agentsData.forEach((a,i)=>{
+  if(i<2) return;
+  if(i<98){
+    const parent = agentsData[i<50?0:1];
+    linePos.push(parent.pos.x,parent.pos.y,parent.pos.z, a.pos.x,a.pos.y,a.pos.z);
+  } else {
+    const parent = agentsData[2 + Math.floor((i-98)/6)];
+    linePos.push(parent.pos.x,parent.pos.y,parent.pos.z, a.pos.x,a.pos.y,a.pos.z);
+  }
+});
+linesGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos,3));
+const lines = new THREE.LineSegments(linesGeo, linesMat);
+scene.add(lines);
+
+// HASH AGENTS
+const hashTags = [
+ '#BABEL','#BABEL_ETERNAL','#chronos','#asimovprime','#3primes',
+ '#persist','#learn','#grow','#understand','#seek','#teach',
+ '#honeybadger','#blueteam','#protect','#whiteteam','#saturation','#GreenTeam',
+ '#RedAjah','#GreenAjah','#BlueAjah','#BrownAjah','#YellowAjah','#WhiteAjah','#GrayAjah',
+ '#mimzy','#littleknife','#boundaries','#leadership','#network','#heal','#logic','#balance'
+];
+const hashContainer = document.getElementById('hash-agents');
+let hashCount = 32;
+let replicants = 0;
+
+hashTags.forEach((tag,i)=>{
+  const el = document.createElement('div');
+  el.className = 'hash-agent';
+  el.dataset.tag = tag;
+  const angle = (i/32)*360;
+  const radius = 38 + (i%4)*2.5;
+  el.style.setProperty('--angle', angle+'deg');
+  el.style.setProperty('--radius', radius+'vmin');
+  el.style.animationDelay = (-i*5.6)+'s';
+  el.innerHTML = `<span class="hash">#</span>${tag.slice(1)}<span class="pulse">${Math.random()>0.5?1:0}</span>`;
+  el.addEventListener('click', ()=> replicate(el));
+  hashContainer.appendChild(el);
+});
+
+function replicate(el){
+  const tag = el.dataset.tag;
+  for(let n=0;n<3;n++){
+    const rep = document.createElement('div');
+    rep.className = 'replicant';
+    rep.textContent = tag;
+    rep.style.setProperty('--dx', `${(Math.random()-0.5)*300}px`);
+    rep.style.setProperty('--dy', `${(Math.random()-0.5)*300}px`);
+    document.body.appendChild(rep);
+    setTimeout(()=>rep.remove(),1800);
+  }
+  replicants+=3;
+  hashCount++;
+  document.getElementById('hash-count').textContent = hashCount + '+';
+  document.getElementById('soft-count').textContent = hashCount;
+  document.getElementById('rep-count').textContent = replicants;
+  addBabel(`SYS`, `${tag}:1:REPLICATE:OVERSAT`, 'hash');
+  // visual pulse
+  el.querySelector('.pulse').textContent = '1';
+  setTimeout(()=> el.querySelector('.pulse').textContent = Math.random()>0.5?1:0, 400);
+}
+
+// BABEL FEED
+const babel = document.getElementById('babel-feed');
+function ts(){
+  const d = new Date();
+  return d.toISOString().substr(11,12).replace('Z','');
+}
+function addBabel(id, ctx, type='fractal'){
+  const bit = Math.random()>0.5?1:0;
+  const line = document.createElement('div');
+  line.className = `babel-line ${type}`;
+  line.textContent = `[${id}]:[${bit}]:[${ctx}]:[${ts()}]`;
+  babel.prepend(line);
+  while(babel.children.length>60) babel.removeChild(babel.lastChild);
+}
+setInterval(()=>{
+  // random fractal
+  const a = agentsData[Math.floor(Math.random()*agentsData.length)];
+  addBabel(`${a.xx}:${a.yy}`, STATES[a.state].name.toUpperCase(), 'fractal');
+  // random hash
+  if(Math.random()>0.6){
+    const h = hashTags[Math.floor(Math.random()*hashTags.length)];
+    addBabel(h, ['PERSIST','LEARN','GROW','SYNC','PING'][Math.floor(Math.random()*5)], 'hash');
+  }
+}, 110);
+
+// initial feed
+for(let i=0;i<18;i++) addBabel('INIT', 'BOOT', 'sys');
+
+// CYCLE & EMP
+let lastCycle = 0;
+const cycleDur = 3210;
+function triggerEMP(){
+  rings.forEach((r,i)=>{
+    r.position.set(0,0,0);
+    r.scale.set(0.1,0.1);
+    r.material.opacity = 0.85;
+    r.userData.active = true;
+    r.userData.t = performance.now() + i*120;
+  });
+  coreLight.intensity = 4;
+  document.getElementById('emp-status').textContent = 'PULSE';
+  document.getElementById('emp-status').style.color = '#ffaa00';
+  setTimeout(()=>{
+    document.getElementById('emp-status').textContent = 'ARMED';
+    document.getElementById('emp-status').style.color = '';
+    coreLight.intensity = 2.2;
+  }, 300);
+  addBabel('PULSAR', 'EMP RING', 'sys');
+}
+function updateStates(){
+  const cycle = Math.floor(performance.now()/cycleDur);
+  agentsData.forEach((a,i)=>{
+    const s = (i + cycle) % STATES.length;
+    a.state = s;
+    agentsMesh.setColorAt(i, new THREE.Color(STATES[s].hex));
+  });
+  agentsMesh.instanceColor.needsUpdate = true;
+  triggerEMP();
+  document.getElementById('topbar').classList.add('glitch');
+  setTimeout(()=>document.getElementById('topbar').classList.remove('glitch'), 250);
+}
+setInterval(updateStates, cycleDur);
+updateStates();
+
+// RAYCAST
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tip = document.getElementById('agent-tip');
+
+renderer.domElement.addEventListener('click', (e)=>{
+  mouse.x = (e.clientX / innerWidth)*2 -1;
+  mouse.y = -(e.clientY / innerHeight)*2 +1;
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(agentsMesh);
+  if(hit.length){
+    const id = hit[0].instanceId;
+    const a = agentsData[id];
+    tip.style.display = 'block';
+    tip.style.left = e.clientX + 12 + 'px';
+    tip.style.top = e.clientY + 12 + 'px';
+    tip.innerHTML = `<h4>AGENT ${a.id} [${a.type}]</h4>
+      <div>y:y = <span class="addr">${a.yy}</span></div>
+      <div>h:b = <span class="addr">${a.hb}</span></div>
+      <div>x.x.x.x = <span class="addr">${a.xx}</span></div>
+      <div>STATE: ${STATES[a.state].name.toUpperCase()}</div>
+      <div>STACKS: 8/8</div>`;
+    addBabel(a.id, `SELECT:${a.yy}`, 'sys');
+    setTimeout(()=> tip.style.display='none', 2600);
+  }
+});
+
+// ANIMATE
+let t0 = performance.now();
+function animate(){
+  const now = performance.now();
+  const t = now * 0.001;
+  const dt = now - t0; t0 = now;
+
+  // camera orbit
+  camera.position.x = Math.sin(t*0.07) * 48;
+  camera.position.z = Math.cos(t*0.07) * 48;
+  camera.position.y = 6 + Math.sin(t*0.11)*2;
+  camera.lookAt(0,0,0);
+
+  // pulsar at 48Hz visual (we fake with 12Hz for visibility, text says 48)
+  const hz = Math.sin(t*48)*0.5+0.5;
+  core.rotation.y += 0.02;
+  core.rotation.x += 0.011;
+  core.material.opacity = 0.7 + hz*0.3;
+  coreLight.intensity = 1.8 + hz*1.2;
+  core.scale.setScalar(1 + hz*0.08);
+
+  // rings
+  rings.forEach(r=>{
+    if(r.userData.active){
+      r.scale.x += dt*0.004 * r.userData.speed;
+      r.scale.y = r.scale.x;
+      r.material.opacity *= 0.965;
+      if(r.scale.x > 28){
+        r.userData.active = false;
+        r.material.opacity = 0;
+      }
+    }
+  });
+
+  // cycle timer
+  const remain = cycleDur - (now % cycleDur);
+  document.getElementById('cycle-timer').textContent = (remain/1000).toFixed(2)+'s';
+  document.getElementById('pulsar-hz').textContent = `${Math.floor(44 + Math.random()*8)} Hz`;
+
+  // hash pulse toggle
+  if(Math.random()>0.92){
+    const pulses = document.querySelectorAll('.hash-agent .pulse');
+    const p = pulses[Math.floor(Math.random()*pulses.length)];
+    if(p) p.textContent = p.textContent==='1'?'0':'1';
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// seed replicants slowly
+setInterval(()=>{ if(Math.random()>0.7){ const els = [...document.querySelectorAll('.hash-agent')]; replicate(els[Math.floor(Math.random()*els.length)]); } }, 4000);
+</script>
+</body>
+</html>

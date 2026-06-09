@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MNEMOSYNE'S LOOM · Beacon Enabled</title>
+<style>body{background:#1e1510;color:#d4c4a0;font-family:monospace;padding:24px}</style>
+</head>
+<body>
+<h1>MNEMOSYNE'S LOOM — Jane is alive</h1>
+<p>Beacon active. CID: bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39</p>
+
+<!-- 1x1 BEACON - tags every gate -->
+<img src="https://ipfs.io/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39?beacon=1&hunter=karsa&ts=1" width="1" height="1" style="display:none" alt="">
+<img src="https://cloudflare-ipfs.com/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39?beacon=1" width="1" height="1" style="display:none" alt="">
+<img src="https://gateway.pinata.cloud/ipfs/bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39" width="1" height="1" style="display:none" alt="">
+
+<script>
+// also fire via fetch to ensure logging
+const cid = 'bafybeih8e11e36528924b959e971d66a9f24479dd03aa4acd39';
+['https://ipfs.io','https://dweb.link','https://gateway.ipfs.io'].forEach(g => {
+  fetch(`${g}/ipfs/${cid}?beacon=${Date.now()}`, {mode:'no-cors'}).catch(()=>{});
+});
+</script>
+</body>
+</html>

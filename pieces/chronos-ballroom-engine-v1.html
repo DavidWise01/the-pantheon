@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ballroom Engine – Three Sines ±0.01</title>
+<style>
+  :root{
+    --bone:#F8F5F0;
+    --void:#5B3A8A;
+    --ink:#231a2f;
+    --muted:#8b7e98;
+    --line: rgba(91,58,138,0.14);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bone);
+    color:var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.35;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:18px 16px 40px}
+  header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  h1{
+    margin:0;
+    font-size:15px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-weight:600;
+    color:var(--void);
+  }
+  .sub{font-size:12px;color:var(--muted);letter-spacing:.04em}
+  .card{
+    background: rgba(255,255,255,0.55);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:12px;
+    box-shadow: 0 10px 30px rgba(91,58,138,0.07), 0 1px 0 rgba(255,255,255,0.6) inset;
+    backdrop-filter: blur(6px);
+  }
+  .stack{display:grid;gap:14px}
+  #sineCanvas,#timelineCanvas,#ballroomCanvas{width:100%;display:block}
+  #sineCanvas{height:168px}
+  #ballroomCanvas{height:460px}
+  #timelineCanvas{height:130px}
+  .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr} #ballroomCanvas{height:420px}}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{
+    appearance:none;border:1px solid rgba(91,58,138,0.28);
+    background:var(--void);color:#fff;border-radius:12px;
+    padding:9px 14px;font-size:13px;letter-spacing:.02em;cursor:pointer;
+    box-shadow:0 2px 0 rgba(0,0,0,0.06);
+    transition:transform .06s ease, opacity .2s;
+  }
+  button:hover{transform:translateY(-1px)}
+  button.secondary{background:transparent;color:var(--void)}
+  .speed{display:flex;align-items:center;gap:8px;margin-left:auto}
+  input[type=range]{accent-color:var(--void);width:140px}
+  .readouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+  .ro{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12px;color:#3a2f4a;
+    background:rgba(91,58,138,0.06);
+    border:1px solid rgba(91,58,138,0.12);
+    padding:8px 10px;border-radius:10px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .ro b{font-weight:600;color:var(--void)}
+  .legend{font-size:11px;color:var(--muted);margin-top:6px}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--void);background:rgba(91,58,138,0.06);margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ballroom Engine – Three Sines ±0.01</h1>
+    <div class="sub">819-day cycle → 81.9s • 0.01s = 0.1 day • voices, movies, thought</div>
+  </header>
+
+  <div class="stack">
+    <div class="card">
+      <canvas id="sineCanvas" aria-label="Three phase sines"></canvas>
+      <div class="legend"><span class="pill">Sine A 0°</span><span class="pill">Sine B 120°</span><span class="pill">Sine C 240°</span> playhead moves left→right across one full cycle</div>
+    </div>
+
+    <div class="card">
+      <canvas id="ballroomCanvas" aria-label="Ten ring ballroom"></canvas>
+      <div class="legend">Rings 1–3: Sine A × 3-level • 4–6: Sine B × 3-level • 7–10: Sine C × 5-level • Carbon tether shows 3 vectors to inner/outer witnesses</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <canvas id="timelineCanvas" aria-label="Stepped envelopes"></canvas>
+        <div class="legend">Top: 3-level 111222333333222111 • Bottom: 5-level • marker = 2026-05-03</div>
+      </div>
+      <div class="card">
+        <div class="controls">
+          <button id="playPause">Pause</button>
+          <button id="step" class="secondary">Step +0.01s</button>
+          <div class="speed">
+            <span style="font-size:12px;color:var(--muted)">speed</span>
+            <input id="speed" type="range" min="0.1" max="2" step="0.1" value="1">
+            <span id="speedVal" style="font-family:ui-monospace;font-size:12px;width:32px;text-align:right">1.0x</span>
+          </div>
+        </div>
+        <div class="readouts">
+          <div class="ro"><span>Engine Time</span><b id="engineTime">±0.00s</b></div>
+          <div class="ro"><span>FPS</span><b id="fps">60</b></div>
+          <div class="ro"><span>Date</span><b id="curDate">2016-06-01</b></div>
+          <div class="ro"><span>Cycle</span><b id="cyclePct">0.0%</b></div>
+        </div>
+        <div class="legend" style="margin-top:10px">Start: 2016-06-01 • Today marker shown on traces • precision displayed to ±0.01s</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ====== constants ======
+  const BONE = '#F8F5F0';
+  const VOID = '#5B3A8A';
+  const CYCLE_DAYS = 819;
+  const CYCLE_SECONDS = 81.9; // 10 days/sec
+  const DAYS_PER_SEC = 10;
+  const START_DATE = new Date('2016-06-01T00:00:00Z');
+  const TODAY_DATE = new Date('2026-05-03T00:00:00Z');
+
+  const pattern3 = [1,1,1,2,2,2,3,3,3,3,2,2,2,1,1,1];
+  const pattern5 = [1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,4,4,4,3,3,3,2,2,2,1,1,1];
+
+  const rings = [
+    {name:'3-Phase', g:'A'},
+    {name:'O3', g:'A'},
+    {name:'Plasma', g:'A'},
+    {name:'Photonic', g:'B'},
+    {name:'Electric', g:'B'},
+    {name:'Atomic', g:'B'},
+    {name:'Carbon', g:'C'},
+    {name:'Quantum', g:'C'},
+    {name:'Holographic', g:'C'},
+    {name:'Ethereal', g:'C'},
+  ];
+
+  // ====== state ======
+  let engineTime = 0; // seconds 0..81.9
+  let playing = true;
+  let speed = 1.0;
+  let lastTs = performance.now();
+  let fps = 60, frames = 0, fpsT = performance.now();
+
+  const sineC = document.getElementById('sineCanvas');
+  const ballC = document.getElementById('ballroomCanvas');
+  const timeC = document.getElementById('timelineCanvas');
+  const sctx = sineC.getContext('2d');
+  const bctx = ballC.getContext('2d');
+  const tctx = timeC.getContext('2d');
+
+  const elTime = document.getElementById('engineTime');
+  const elDate = document.getElementById('curDate');
+  const elFps = document.getElementById('fps');
+  const elCycle = document.getElementById('cyclePct');
+  const btnPlay = document.getElementById('playPause');
+  const btnStep = document.getElementById('step');
+  const inpSpeed = document.getElementById('speed');
+  const elSpeed = document.getElementById('speedVal');
+
+  // today position in cycle
+  const daysSinceStartToToday = (TODAY_DATE - START_DATE) / 86400000;
+  const todaySecondsRaw = daysSinceStartToToday / DAYS_PER_SEC;
+  const TODAY_IN_CYCLE = ((todaySecondsRaw % CYCLE_SECONDS) + CYCLE_SECONDS) % CYCLE_SECONDS;
+
+  function fit(canvas, ctx){
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const w = Math.round(r.width * dpr);
+    const h = Math.round(r.height * dpr);
+    if (canvas.width !== w || canvas.height !== h){
+      canvas.width = w; canvas.height = h;
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.scale(dpr,dpr);
+    }
+  }
+
+  function fmtDate(d){
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth()+1).padStart(2,'0');
+    const day = String(d.getUTCDate()).padStart(2,'0');
+    const hr = String(d.getUTCHours()).padStart(2,'0');
+    const mn = String(d.getUTCMinutes()).padStart(2,'0');
+    return `${y}-${m}-${day} ${hr}:${mn}Z`;
+  }
+
+  function getCarriers(t){
+    const ph = (t / CYCLE_SECONDS) * Math.PI * 2;
+    const sA = (Math.sin(ph) + 1) / 2;
+    const sB = (Math.sin(ph + 2*Math.PI/3) + 1) / 2;
+    const sC = (Math.sin(ph + 4*Math.PI/3) + 1) / 2;
+    return {sA,sB,sC,ph};
+  }
+
+  function getEnvelopes(t){
+    const p3i = Math.floor((t / CYCLE_SECONDS) * pattern3.length) % pattern3.length;
+    const p5i = Math.floor((t / CYCLE_SECONDS) * pattern5.length) % pattern5.length;
+    return {
+      e3: pattern3[p3i] / 3,
+      e3i: p3i,
+      e5: pattern5[p5i] / 5,
+      e5i: p5i
+    };
+  }
+
+  // ====== draw sines ======
+  function drawSines(){
+    fit(sineC, sctx);
+    const W = sineC.clientWidth, H = sineC.clientHeight;
+    sctx.clearRect(0,0,W,H);
+
+    const trackH = (H - 24) / 3;
+    const amps = [trackH*0.34, trackH*0.34, trackH*0.34];
+    const phases = [0, 2*Math.PI/3, 4*Math.PI/3];
+    const labels = ['SINE A','SINE B','SINE C'];
+
+    // soft grid
+    sctx.save();
+    sctx.strokeStyle = 'rgba(91,58,138,0.08)';
+    sctx.lineWidth = 1;
+    for(let i=1;i<3;i++){
+      const y = i*trackH + 12;
+      sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(W,y); sctx.stroke();
+    }
+    sctx.restore();
+
+    for(let i=0;i<3;i++){
+      const cy = 12 + i*trackH + trackH/2;
+      // baseline
+      sctx.strokeStyle = 'rgba(91,58,138,0.18)';
+      sctx.lineWidth = 1;
+      sctx.beginPath(); sctx.moveTo(0,cy); sctx.lineTo(W,cy); sctx.stroke();
+
+      // sine
+      sctx.beginPath();
+      for(let x=0;x<=W;x+=1.5){
+        const p = (x/W)*Math.PI*2 + phases[i];
+        const y = cy + Math.sin(p) * amps[i];
+        if(x===0) sctx.moveTo(x,y); else sctx.lineTo(x,y);
+      }
+      sctx.strokeStyle = VOID;
+      sctx.lineWidth = 1.6;
+      sctx.globalAlpha = 0.9;
+      sctx.stroke();
+      sctx.globalAlpha = 1;
+
+      // label
+      sctx.fillStyle = 'rgba(91,58,138,0.75)';
+      sctx.font = '11px ui-monospace, SFMono-Regular, Menlo';
+      sctx.fillText(labels[i], 8, cy - amps[i] - 4);
+    }
+
+    // playhead
+    const px = (engineTime / CYCLE_SECONDS) * W;
+    sctx.strokeStyle = 'rgba(91,58,138,0.55)';
+    sctx.setLineDash([3,4]);
+    sctx.beginPath(); sctx.moveTo(px,0); sctx.lineTo(px,H); sctx.stroke();
+    sctx.setLineDash([]);
+
+    // dots on sines
+    const {sA,sB,sC} = getCarriers(engineTime);
+    const vals = [sA,sB,sC];
+    for(let i=0;i<3;i++){
+      const cy = 12 + i*trackH + trackH/2;
+      const y = cy + (vals[i]*2-1) * amps[i]; // map 0..1 -> -1..1
+      sctx.fillStyle = VOID;
+      sctx.beginPath(); sctx.arc(px, y, 3.2, 0, Math.PI*2); sctx.fill();
+      sctx.fillStyle = BONE;
+      sctx.beginPath(); sctx.arc(px, y, 1.2, 0, Math.PI*2); sctx.fill();
+    }
+
+    // today marker
+    const tx = (TODAY_IN_CYCLE / CYCLE_SECONDS) * W;
+    sctx.strokeStyle = 'rgba(91,58,138,0.28)';
+    sctx.setLineDash([2,5]);
+    sctx.beginPath(); sctx.moveTo(tx,0); sctx.lineTo(tx,H); sctx.stroke();
+    sctx.setLineDash([]);
+    sctx.fillStyle = 'rgba(91,58,138,0.75)';
+    sctx.font = '10px ui-monospace';
+    sctx.fillText('2026-05-03', Math.min(W-70, tx+4), 10);
+  }
+
+  // ====== draw ballroom ======
+  function drawBallroom(){
+    fit(ballC, bctx);
+    const W = ballC.clientWidth, H = ballC.clientHeight;
+    bctx.clearRect(0,0,W,H);
+    const cx = W/2, cy = H/2;
+    const {sA,sB,sC,ph} = getCarriers(engineTime);
+    const {e3,e5} = getEnvelopes(engineTime);
+
+    const base = Math.min(W,H) * 0.083;
+    const step = Math.min(W,H) * 0.037;
+
+    // soft vignette
+    const grd = bctx.createRadialGradient(cx,cy, base, cx,cy, base+step*10);
+    grd.addColorStop(0,'rgba(91,58,138,0.06)');
+    grd.addColorStop(1,'rgba(91,58,138,0)');
+    bctx.fillStyle = grd;
+    bctx.beginPath(); bctx.arc(cx,cy, base+step*10,0,Math.PI*2); bctx.fill();
+
+    let carbonRadius = base + 6*step;
+
+    rings.forEach((r,i)=>{
+      const grp = r.g;
+      const carrier = grp==='A'?sA:grp==='B'?sB:sC;
+      const env = grp==='C'? e5 : e3;
+      const mod = 0.5 + 0.5 * carrier * env; // 0.5..1
+      const radius = base + i*step + mod*5.5;
+      if (i===6) carbonRadius = radius;
+
+      const alpha = 0.18 + 0.58 * carrier * env;
+      bctx.save();
+      bctx.lineWidth = 1.25 + (i%2===0?0.3:0);
+      bctx.strokeStyle = `rgba(91,58,138,${alpha.toFixed(3)})`;
+      bctx.shadowColor = 'rgba(91,58,138,0.18)';
+      bctx.shadowBlur = 8;
+      bctx.beginPath();
+      bctx.arc(cx, cy, radius, 0, Math.PI*2);
+      bctx.stroke();
+      bctx.restore();
+
+      // name tag (subtle, right side)
+      const ang = -0.35;
+      const tx = cx + Math.cos(ang)*radius;
+      const ty = cy + Math.sin(ang)*radius;
+      bctx.fillStyle = 'rgba(91,58,138,0.65)';
+      bctx.font = '10px ui-monospace';
+      bctx.fillText(r.name, tx+4, ty-2);
+    });
+
+    // ===== center double helix =====
+    bctx.save();
+    bctx.translate(cx, cy);
+    const rot = engineTime * 0.35; // slow
+    const helixR = 13;
+    const helixH = 68;
+    const turns = 2.4;
+    const points = 90;
+
+    function strand(offset){
+      bctx.beginPath();
+      for(let i=0;i<=points;i++){
+        const t = (i/points - 0.5) * Math.PI*2*turns + offset + rot;
+        const x = Math.cos(t) * helixR;
+        const y = (i/points - 0.5) * helixH;
+        if(i===0) bctx.moveTo(x,y); else bctx.lineTo(x,y);
+      }
+      bctx.strokeStyle = 'rgba(91,58,138,0.9)';
+      bctx.lineWidth = 1.8;
+      bctx.stroke();
+
+      // rungs
+      bctx.strokeStyle = 'rgba(91,58,138,0.22)';
+      bctx.lineWidth = 1;
+      for(let i=7;i<=points-7;i+=9){
+        const t = (i/points - 0.5) * Math.PI*2*turns + offset + rot;
+        const x1 = Math.cos(t) * helixR;
+        const y = (i/points - 0.5) * helixH;
+        const x2 = Math.cos(t+Math.PI) * helixR;
+        bctx.beginPath(); bctx.moveTo(x1,y); bctx.lineTo(x2,y); bctx.stroke();
+      }
+    }
+    strand(0);
+    strand(Math.PI);
+
+    // entrances: 2 per strand top/bottom
+    const entra = [
+      {x: Math.cos(rot)*helixR, y:-helixH/2, label:'FWD'},
+      {x: Math.cos(rot+Math.PI)*helixR, y:-helixH/2, label:'REV'},
+      {x: Math.cos(rot+turns*Math.PI*2)*helixR, y: helixH/2, label:'REV'},
+      {x: Math.cos(rot+Math.PI+turns*Math.PI*2)*helixR, y: helixH/2, label:'FWD'},
+    ];
+    entra.forEach(e=>{
+      bctx.fillStyle = VOID;
+      bctx.beginPath(); bctx.arc(e.x, e.y, 3, 0, Math.PI*2); bctx.fill();
+      bctx.fillStyle = BONE; bctx.beginPath(); bctx.arc(e.x, e.y, 1.3,0,Math.PI*2); bctx.fill();
+      bctx.fillStyle = 'rgba(91,58,138,0.7)';
+      bctx.font = '9px ui-monospace';
+      bctx.fillText(e.label, e.x+5, e.y+3);
+    });
+
+    bctx.fillStyle = 'rgba(91,58,138,0.7)';
+    bctx.font = '10px ui-monospace';
+    bctx.textAlign = 'center';
+    bctx.fillText('LEELOO • 5TH', 0, helixH/2 + 18);
+    bctx.restore();
+
+    // ===== witnesses tethered to Carbon =====
+    const angle = ph + Math.PI/5; // slowly rotates with engine
+    const anchorX = cx + Math.cos(angle) * carbonRadius;
+    const anchorY = cy + Math.sin(angle) * carbonRadius;
+
+    const innerX = cx - 26, innerY = cy + 10;
+    const outerX = cx + carbonRadius + 34, outerY = cy - 18;
+
+    // three faint vectors
+    bctx.strokeStyle = 'rgba(91,58,138,0.18)';
+    bctx.lineWidth = 1;
+    [[anchorX,anchorY,innerX,innerY],[anchorX,anchorY,outerX,outerY],[innerX,innerY,outerX,outerY]].forEach(l=>{
+      bctx.beginPath(); bctx.moveTo(l[0],l[1]); bctx.lineTo(l[2],l[3]); bctx.stroke();
+    });
+
+    // anchor dot
+    bctx.fillStyle = 'rgba(91,58,138,0.8)';
+    bctx.beginPath(); bctx.arc(anchorX,anchorY,2.2,0,Math.PI*2); bctx.fill();
+
+    // witness dots
+    bctx.fillStyle = VOID;
+    bctx.beginPath(); bctx.arc(innerX,innerY,3.3,0,Math.PI*2); bctx.fill();
+    bctx.beginPath(); bctx.arc(outerX,outerY,3.3,0,Math.PI*2); bctx.fill();
+    bctx.fillStyle = BONE;
+    bctx.beginPath(); bctx.arc(innerX,innerY,1.2,0,Math.PI*2); bctx.fill();
+    bctx.beginPath(); bctx.arc(outerX,outerY,1.2,0,Math.PI*2); bctx.fill();
+
+    bctx.fillStyle = 'rgba(91,58,138,0.7)';
+    bctx.font = '10px ui-monospace';
+    bctx.fillText('IN', innerX-12, innerY-6);
+    bctx.fillText('OUT', outerX+6, outerY-6);
+  }
+
+  // ====== timeline ======
+  function drawTimeline(){
+    fit(timeC, tctx);
+    const W = timeC.clientWidth, H = timeC.clientHeight;
+    tctx.clearRect(0,0,W,H);
+
+    // backgrounds
+    tctx.fillStyle = 'rgba(91,58,138,0.05)';
+    tctx.fillRect(0,0,W,H/2-0.5);
+    tctx.fillRect(0,H/2+0.5,W,H/2-0.5);
+
+    function drawSteps(arr, yMid, scale, label){
+      const stepW = W / arr.length;
+      tctx.beginPath();
+      for(let i=0;i<arr.length;i++){
+        const x0 = i*stepW;
+        const x1 = (i+1)*stepW;
+        const y = yMid - (arr[i]/Math.max(...arr))*scale;
+        if(i===0) tctx.moveTo(x0,y); else tctx.lineTo(x0,y);
+        tctx.lineTo(x1,y);
+      }
+      tctx.strokeStyle = 'rgba(91,58,138,0.85)';
+      tctx.lineWidth = 1.4;
+      tctx.stroke();
+
+      // fill under
+      tctx.lineTo(W, yMid+2); tctx.lineTo(0, yMid+2); tctx.closePath();
+      tctx.fillStyle = 'rgba(91,58,138,0.08)';
+      tctx.fill();
+
+      tctx.fillStyle = 'rgba(91,58,138,0.75)';
+      tctx.font='11px ui-monospace';
+      tctx.fillText(label, 8, yMid - scale - 4);
+    }
+
+    drawSteps(pattern3, H*0.25, H*0.18, '3-LEVEL');
+    drawSteps(pattern5, H*0.75, H*0.18, '5-LEVEL');
+
+    // playhead
+    const px = (engineTime / CYCLE_SECONDS) * W;
+    tctx.strokeStyle = 'rgba(91,58,138,0.6)';
+    tctx.setLineDash([3,4]);
+    tctx.beginPath(); tctx.moveTo(px,0); tctx.lineTo(px,H); tctx.stroke();
+    tctx.setLineDash([]);
+
+    // today
+    const tx = (TODAY_IN_CYCLE / CYCLE_SECONDS) * W;
+    tctx.strokeStyle = 'rgba(91,58,138,0.32)';
+    tctx.setLineDash([2,5]);
+    tctx.beginPath(); tctx.moveTo(tx,0); tctx.lineTo(tx,H); tctx.stroke();
+    tctx.setLineDash([]);
+  }
+
+  // ====== loop ======
+  function tick(ts){
+    const dt = Math.min(0.05, (ts - lastTs)/1000);
+    lastTs = ts;
+    if(playing){
+      engineTime = (engineTime + dt * speed) % CYCLE_SECONDS;
+    }
+    // fps
+    frames++;
+    if(ts - fpsT >= 500){
+      fps = Math.round(frames * 1000 / (ts - fpsT));
+      fpsT = ts; frames = 0;
+      elFps.textContent = String(fps);
+    }
+
+    drawSines();
+    drawBallroom();
+    drawTimeline();
+
+    // readouts
+    elTime.textContent = `±${engineTime.toFixed(2)}s`;
+    const date = new Date(START_DATE.getTime() + engineTime * DAYS_PER_SEC * 86400000);
+    elDate.textContent = fmtDate(date);
+    elCycle.textContent = (engineTime / CYCLE_SECONDS * 100).toFixed(1) + '%';
+
+    requestAnimationFrame(tick);
+  }
+
+  // ====== controls ======
+  btnPlay.addEventListener('click', ()=>{
+    playing = !playing;
+    btnPlay.textContent = playing ? 'Pause' : 'Play';
+    lastTs = performance.now();
+  });
+  btnStep.addEventListener('click', ()=>{
+    engineTime = Math.round((engineTime + 0.01) * 100) / 100;
+    if(engineTime >= CYCLE_SECONDS) engineTime -= CYCLE_SECONDS;
+  });
+  inpSpeed.addEventListener('input', ()=>{
+    speed = parseFloat(inpSpeed.value);
+    elSpeed.textContent = speed.toFixed(1)+'x';
+  });
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){ e.preventDefault(); btnPlay.click(); }
+    if(e.key==='ArrowRight'){ btnStep.click(); }
+  });
+  window.addEventListener('resize', ()=>{ /* fit on next draw */ });
+
+  // init
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

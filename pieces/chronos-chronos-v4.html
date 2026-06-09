@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONOS CORE // 1-2-3-4 CLOCK</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0a0a0f; font-family:"JetBrains Mono", monospace; }
+  .font-orbitron { font-family: "Orbitron", monospace; }
+  .neon-text { text-shadow: 0 0 10px rgba(0,229,255,0.8), 0 0 30px rgba(0,229,255,0.3); }
+  .panel {
+    background: linear-gradient(180deg, rgba(14,16,28,0.85), rgba(7,8,14,0.9));
+    border:1px solid rgba(0,229,255,0.14);
+    box-shadow: 0 0 0 1px rgba(255,0,229,0.05) inset, 0 10px 40px rgba(0,0,0,0.6), 0 0 80px rgba(0,229,255,0.03);
+    backdrop-filter: blur(14px);
+  }
+  #bg-grid {
+    position: fixed; inset:0; pointer-events:none; opacity:.25;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.12) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 70%);
+  }
+  .grid-fade { mask-image: linear-gradient(to bottom, black, transparent 90%); }
+  input[type=range] { -webkit-appearance:none; appearance:none; background:transparent; height:28px; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height:6px; background:#0c1420; border:1px solid rgba(0,229,255,0.25); border-radius:999px;
+    box-shadow: 0 0 12px rgba(0,229,255,0.1) inset;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%;
+    background:#00e5ff; border:2px solid #02131b; box-shadow:0 0 10px #00e5ff, 0 0 20px rgba(0,229,255,0.6);
+    cursor:pointer; transition:transform .1s;
+  }
+  input[type=range]::-webkit-slider-thumb:active { transform:scale(1.15); }
+  input[type=range]::-moz-range-track { height:6px; background:#0c1420; border:1px solid rgba(0,229,255,0.25); border-radius:999px; }
+  input[type=range]::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#00e5ff; border:2px solid #02131b; box-shadow:0 0 10px #00e5ff; cursor:pointer; }
+
+  .cylinder {
+    position:absolute; width:12px; height:26px; transform:translate(-50%,-50%);
+    background: linear-gradient(180deg,#0b1724,#050a12);
+    border:1px solid rgba(0,229,255,0.18); border-radius:4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.8);
+    transition: all .12s;
+  }
+  .cylinder::after {
+    content:''; position:absolute; top:2px; left:50%; transform:translateX(-50%);
+    width:6px; height:3px; border-radius:1px; background:rgba(0,229,255,0.35);
+    box-shadow:0 0 4px rgba(0,229,255,0.2);
+  }
+  .cylinder.firing {
+    border-color:#00e5ff; background:linear-gradient(180deg,#0d2a3a,#06141f);
+    box-shadow: 0 0 14px rgba(0,229,255,0.9), 0 0 30px rgba(0,229,255,0.35), inset 0 0 8px rgba(0,229,255,0.4);
+  }
+  .cylinder.firing::after { background:#00e5ff; box-shadow:0 0 8px #00e5ff; }
+
+  .phase-card.active { border-color:rgba(0,229,255,0.6); background:rgba(0,229,255,0.08); box-shadow:0 0 20px rgba(0,229,255,0.15) inset; }
+</style>
+</head>
+<body class="text-cyan-100 selection:bg-cyan-400/30 selection:text-white">
+<div id="bg-grid"></div>
+
+<header class="relative z-30 border-b border-cyan-400/10 bg-black/50 backdrop-blur-xl sticky top-0">
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+    <div>
+      <h1 class="font-orbitron text-[20px] sm:text-2xl md:text-[28px] font-black tracking-[0.18em] leading-none">
+        <span class="text-white">CHRONOS CORE</span>
+        <span class="text-cyan-400 mx-1 sm:mx-2">//</span>
+        <span class="text-white/85">1-2-3-4</span>
+        <span class="text-cyan-400"> CLOCK</span>
+      </h1>
+      <p class="mt-1.5 text-[10px] sm:text-[11px] tracking-[0.32em] text-cyan-200/55">4-SLIT = HONDA FIRING ORDER = TIME</p>
+    </div>
+    <div class="hidden md:flex items-center gap-3">
+      <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_12px_#00e5ff]"></div>
+      <span class="text-[11px] tracking-widest text-cyan-300/70 font-orbitron">QUANTUM SYNC</span>
+    </div>
+  </div>
+</header>
+
+<main class="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-5 lg:p-6 grid grid-cols-12 gap-4 lg:gap-5">
+  <!-- TERNARY -->
+  <section class="col-span-12 lg:col-span-3 panel rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">TERNARY LOGIC CORE</h2>
+      <span class="text-[10px] px-2 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25">+1 / 0 / -1</span>
+    </div>
+    <div class="mt-3 relative aspect-[4/5] bg-black/60 rounded-xl border border-cyan-900/50 overflow-hidden">
+      <canvas id="ternaryCanvas" class="w-full h-full"></canvas>
+      <div class="absolute top-2 left-2 text-[9px] tracking-widest text-white/40">BINARY FAILS</div>
+      <div class="absolute top-2 right-2 text-[9px] tracking-widest text-cyan-300/70">TERNARY LOCKS</div>
+    </div>
+    <p class="mt-3 text-[11px] leading-relaxed text-white/55">
+      Binary has no center — it collapses. Ternary holds <span class="text-cyan-300">+1 (yes)</span>, <span class="text-white">0 (ground)</span>, <span class="text-fuchsia-300">-1 (no)</span>. Zero is not off; it is the anchor. With ground active, output is <span class="text-cyan-300">always yes</span> through superposition.
+    </p>
+  </section>
+
+  <!-- MAIN PHASE RING -->
+  <section class="col-span-12 lg:col-span-6 panel rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">4-PHASE RING</h2>
+      <div class="flex gap-1.5">
+        <span class="px-2 py-0.5 text-[10px] rounded bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">0°</span>
+        <span class="px-2 py-0.5 text-[10px] rounded bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">90°</span>
+        <span class="px-2 py-0.5 text-[10px] rounded bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">180°</span>
+        <span class="px-2 py-0.5 text-[10px] rounded bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">270°</span>
+      </div>
+    </div>
+
+    <div class="mt-3 relative bg-black/60 rounded-xl border border-cyan-900/50 p-3 sm:p-5">
+      <canvas id="phaseCanvas" class="w-full aspect-square max-h-[460px] mx-auto block"></canvas>
+      <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div class="text-center">
+          <div id="phaseNumber" class="font-orbitron text-7xl sm:text-8xl font-black leading-none text-white neon-text">1</div>
+          <div id="phaseLabel" class="mt-2 text-[11px] tracking-[0.5em] text-cyan-300/90 font-orbitron">KNOWS</div>
+          <div id="phaseSub" class="text-[10px] text-white/40 mt-1">0° • INIT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-2 mt-3">
+      <div id="card1" class="phase-card text-center p-2.5 rounded-lg bg-white/[0.03] border border-white/10 transition-all">
+        <div class="text-[10px] text-white/40">1</div>
+        <div class="text-[11px] text-cyan-300 tracking-widest">KNOWS</div>
+      </div>
+      <div id="card2" class="phase-card text-center p-2.5 rounded-lg bg-white/[0.03] border border-white/10 transition-all">
+        <div class="text-[10px] text-white/40">2</div>
+        <div class="text-[11px] text-cyan-300 tracking-widest">OBSERVED</div>
+      </div>
+      <div id="card3" class="phase-card text-center p-2.5 rounded-lg bg-white/[0.03] border border-white/10 transition-all">
+        <div class="text-[10px] text-white/40">3</div>
+        <div class="text-[11px] text-cyan-300 tracking-widest">TOLD</div>
+      </div>
+      <div id="card4" class="phase-card text-center p-2.5 rounded-lg bg-white/[0.03] border border-white/10 transition-all">
+        <div class="text-[10px] text-white/40">4</div>
+        <div class="text-[11px] text-cyan-300 tracking-widest">DOES</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOROID -->
+  <section class="col-span-12 lg:col-span-3 panel rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">TOROID STACK</h2>
+      <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">3×3</span>
+    </div>
+    <div class="mt-3 relative aspect-square bg-black/60 rounded-xl border border-cyan-900/50 overflow-hidden">
+      <canvas id="toroidCanvas" class="w-full h-full"></canvas>
+    </div>
+    <p class="mt-3 text-[11px] leading-relaxed text-white/55">
+      Three components of three. Nested toroidal flux recirculates phase energy. Flow coherence stabilizes the 4-slit interval and prevents binary collapse.
+    </p>
+  </section>
+
+  <!-- W10 x2 -->
+  <section class="col-span-12 xl:col-span-8 panel rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">W10 ×2 ENGINE</h2>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">20 CYLINDERS</span>
+        <span class="text-[10px] px-2 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-200 border border-fuchsia-500/20">HONDA 1-3-4-2</span>
+      </div>
+    </div>
+    <div class="mt-3 relative bg-black/60 rounded-xl border border-cyan-900/50 p-4 overflow-hidden">
+      <div class="absolute inset-0 grid-fade opacity-30" style="background:radial-gradient(60% 40% at 50% 0%, rgba(0,229,255,0.15), transparent)"></div>
+      <div id="engineWrap" class="relative h-[130px] sm:h-[150px]"></div>
+      <div class="mt-3 flex items-center justify-between text-[10px] font-mono text-white/50">
+        <span>SEQUENTIAL FIRE • 4-PHASE DRIVE</span>
+        <span id="engineRpm" class="text-cyan-300">4200 RPM</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- READOUTS -->
+  <section class="col-span-12 xl:col-span-4 panel rounded-2xl p-4 sm:p-5">
+    <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">LIVE READOUTS</h2>
+    <div class="mt-3 space-y-3">
+      <div class="bg-black/60 rounded-xl border border-cyan-900/40 p-3.5">
+        <div class="text-[10px] tracking-widest text-white/40">CURRENT PHASE</div>
+        <div id="readPhase" class="mt-1.5 text-2xl font-orbitron text-cyan-300 tracking-wide">1 • KNOWS</div>
+        <div class="mt-1 text-[11px] text-white/50">4-slit sequence active</div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-black/60 rounded-xl border border-cyan-900/40 p-3.5">
+          <div class="text-[10px] tracking-widest text-white/40">FREQUENCY</div>
+          <div id="readFreq" class="mt-1 text-xl font-mono text-white">70.00 Hz</div>
+          <div class="text-[10px] text-white/40 mt-0.5">RPM / 60</div>
+        </div>
+        <div class="bg-black/60 rounded-xl border border-cyan-900/40 p-3.5">
+          <div class="text-[10px] tracking-widest text-white/40">PHASE ANGLE</div>
+          <div id="readAngle" class="mt-1 text-xl font-mono text-white">0°</div>
+          <div class="text-[10px] text-white/40 mt-0.5">0-360°</div>
+        </div>
+      </div>
+      <div class="relative overflow-hidden bg-black/60 rounded-xl border border-fuchsia-900/40 p-3.5">
+        <div class="text-[10px] tracking-widest text-white/40">QUANTUM STATE</div>
+        <div class="mt-2 flex items-center justify-between">
+          <div id="alwaysYes" class="font-orbitron text-[17px] tracking-[0.25em] text-white/30 transition-all duration-300">ALWAYS YES</div>
+          <div id="yesLight" class="w-2.5 h-2.5 rounded-full bg-white/10 border border-white/20 transition-all duration-300"></div>
+        </div>
+        <div id="yesGlow" class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500" style="background:radial-gradient(40% 60% at 80% 50%, rgba(0,229,255,0.18), transparent 70%)"></div>
+        <div class="mt-1.5 text-[11px] text-white/45">Engages when ground = 0 anchors superposition</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section class="col-span-12 panel rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="font-orbitron text-xs tracking-[0.2em] text-cyan-300">CORE CONTROLS</h2>
+      <span class="text-[10px] text-white/40">Drag to tune the clock</span>
+    </div>
+    <div class="mt-4 grid md:grid-cols-3 gap-6">
+      <div>
+        <div class="flex justify-between mb-2">
+          <label class="text-[11px] tracking-widest text-white/60">RPM</label>
+          <span id="rpmVal" class="text-[12px] font-mono text-cyan-300">4200</span>
+        </div>
+        <input id="rpm" type="range" min="0" max="16500" value="4200" step="50" class="w-full">
+        <div class="flex justify-between text-[10px] text-white/30 mt-1"><span>0</span><span>16,500 redline</span></div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-2">
+          <label class="text-[11px] tracking-widest text-white/60">PHASE OFFSET</label>
+          <span id="offsetVal" class="text-[12px] font-mono text-cyan-300">0°</span>
+        </div>
+        <input id="offset" type="range" min="-180" max="180" value="0" step="1" class="w-full">
+        <div class="flex justify-between text-[10px] text-white/30 mt-1"><span>-180°</span><span>+180°</span></div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-2">
+          <label class="text-[11px] tracking-widest text-white/60">GROUND VOLTAGE</label>
+          <span id="groundVal" class="text-[12px] font-mono text-cyan-300">68%</span>
+        </div>
+        <input id="ground" type="range" min="0" max="100" value="68" step="1" class="w-full">
+        <div class="flex justify-between text-[10px] text-white/30 mt-1"><span>0% binary</span><span>100% ternary lock</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="relative z-10 max-w-[1600px] mx-auto px-6 pb-10 pt-2">
+  <div class="text-[10px] text-white/30 text-center tracking-widest">CHRONOS CORE SIM • 4-SLIT QUANTUM CLOCK • VISUALIZATION ONLY</div>
+</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const phaseCanvas = $('phaseCanvas'), pCtx = phaseCanvas.getContext('2d');
+  const ternaryCanvas = $('ternaryCanvas'), tCtx = ternaryCanvas.getContext('2d');
+  const toroidCanvas = $('toroidCanvas'), oCtx = toroidCanvas.getContext('2d');
+  const rpm = $('rpm'), offset = $('offset'), ground = $('ground');
+  const rpmVal = $('rpmVal'), offsetVal = $('offsetVal'), groundVal = $('groundVal');
+  const phaseNumber = $('phaseNumber'), phaseLabel = $('phaseLabel'), phaseSub = $('phaseSub');
+  const readPhase = $('readPhase'), readFreq = $('readFreq'), readAngle = $('readAngle');
+  const alwaysYes = $('alwaysYes'), yesLight = $('yesLight'), yesGlow = $('yesGlow');
+  const engineRpm = $('engineRpm');
+  const cards = [ $('card1'), $('card2'), $('card3'), $('card4') ];
+
+  // Engine cylinders
+  const engineWrap = $('engineWrap');
+  const cylinders = [];
+  for (let i=0;i<20;i++){
+    const d = document.createElement('div');
+    d.className = 'cylinder';
+    const eng = i<10?0:1;
+    const local = i%10;
+    const base = eng===0 ? 5 : 55;
+    const x = base + local*4.4;
+    const yMap = [24,76,32,70,28,74,36,66,42,60];
+    const y = yMap[local];
+    d.style.left = x+'%';
+    d.style.top = y+'%';
+    engineWrap.appendChild(d);
+    cylinders.push(d);
+  }
+
+  // Toroid particles
+  const particles = [];
+  for (let ring=0; ring<3; ring++){
+    for(let i=0;i<14;i++){
+      particles.push({ ring, a: Math.random()*Math.PI*2, s: 0.4 + Math.random()*0.6 + ring*0.15 });
+    }
+  }
+
+  const phases = [
+    { n:1, l:'KNOWS', deg:0, info:'INIT' },
+    { n:2, l:'OBSERVED', deg:90, info:'SENSE' },
+    { n:3, l:'TOLD', deg:180, info:'SIGNAL' },
+    { n:4, l:'DOES', deg:270, info:'ACT' },
+  ];
+
+  let ternY = null;
+
+  function fit(canvas, ctx){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    const rect = canvas.getBoundingClientRect();
+    if(!rect.width) return;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function resizeAll(){
+    fit(phaseCanvas,pCtx); fit(ternaryCanvas,tCtx); fit(toroidCanvas,oCtx);
+  }
+  window.addEventListener('resize', resizeAll);
+  resizeAll();
+
+  rpm.addEventListener('input', ()=> rpmVal.textContent = Number(rpm.value).toLocaleString());
+  offset.addEventListener('input', ()=> offsetVal.textContent = offset.value + '°');
+  ground.addEventListener('input', ()=> groundVal.textContent = ground.value + '%');
+
+  let angle = 0;
+  let last = performance.now();
+
+  function drawPhase(ang, current, rpmVal){
+    const w = phaseCanvas.clientWidth, h = phaseCanvas.clientHeight;
+    pCtx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2, r = Math.min(w,h)*0.36;
+
+    // outer halo
+    const grad = pCtx.createRadialGradient(cx,cy,r*0.2,r,r*1.6);
+    grad.addColorStop(0,'rgba(0,229,255,0.08)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+    pCtx.fillStyle = grad; pCtx.beginPath(); pCtx.arc(cx,cy,r*1.5,0,Math.PI*2); pCtx.fill();
+
+    // base ring
+    pCtx.beginPath(); pCtx.arc(cx,cy,r+16,0,Math.PI*2);
+    pCtx.strokeStyle='rgba(0,229,255,0.06)'; pCtx.lineWidth=28; pCtx.stroke();
+
+    // 4 arcs
+    const cols = ['#00e5ff','#00e5ff','#ff00e5','#ff00e5'];
+    for(let i=0;i<4;i++){
+      const start = i*Math.PI/2 - Math.PI/2 + 0.12;
+      const end = (i+1)*Math.PI/2 - Math.PI/2 - 0.12;
+      pCtx.beginPath(); pCtx.arc(cx,cy,r,start,end);
+      pCtx.strokeStyle = cols[i]; pCtx.lineWidth=14; pCtx.lineCap='round';
+      pCtx.shadowColor = cols[i]; pCtx.shadowBlur = 18;
+      pCtx.stroke();
+    }
+    pCtx.shadowBlur=0;
+
+    // ticks
+    pCtx.strokeStyle='rgba(255,255,255,0.15)'; pCtx.lineWidth=1;
+    for(let i=0;i<4;i++){
+      const a = i*Math.PI/2 - Math.PI/2;
+      const x1 = cx + Math.cos(a)*(r-18), y1 = cy + Math.sin(a)*(r-18);
+      const x2 = cx + Math.cos(a)*(r+18), y2 = cy + Math.sin(a)*(r+18);
+      pCtx.beginPath(); pCtx.moveTo(x1,y1); pCtx.lineTo(x2,y2); pCtx.stroke();
+    }
+
+    // labels around
+    pCtx.font='11px "JetBrains Mono"'; pCtx.textAlign='center'; pCtx.textBaseline='middle';
+    const labs = [
+      {a:-Math.PI/2, t:'1 KNOWS', s:'0°'},
+      {a:0, t:'2 OBSERVED', s:'90°'},
+      {a:Math.PI/2, t:'3 TOLD', s:'180°'},
+      {a:Math.PI, t:'4 DOES', s:'270°'},
+    ];
+    labs.forEach(lb=>{
+      const lx = cx + Math.cos(lb.a)*(r+38), ly = cy + Math.sin(lb.a)*(r+38);
+      pCtx.fillStyle='rgba(0,229,255,0.85)'; pCtx.fillText(lb.t, lx, ly-7);
+      pCtx.fillStyle='rgba(255,255,255,0.35)'; pCtx.fillText(lb.s, lx, ly+8);
+    });
+
+    // trail
+    for(let i=12;i>0;i--){
+      const a = ang - i*0.07;
+      const tx = cx + Math.sin(a)*r, ty = cy - Math.cos(a)*r;
+      pCtx.beginPath(); pCtx.arc(tx,ty,3,0,Math.PI*2);
+      pCtx.fillStyle=`rgba(0,229,255,${0.08 + (1-i/12)*0.18})`; pCtx.fill();
+    }
+
+    // main dot
+    const dx = cx + Math.sin(ang)*r, dy = cy - Math.cos(ang)*r;
+    pCtx.shadowColor='#00e5ff'; pCtx.shadowBlur=25; pCtx.fillStyle='#00e5ff';
+    pCtx.beginPath(); pCtx.arc(dx,dy,8,0,Math.PI*2); pCtx.fill();
+    pCtx.shadowBlur=0;
+    pCtx.fillStyle='rgba(0,229,255,0.25)'; pCtx.beginPath(); pCtx.arc(dx,dy,18,0,Math.PI*2); pCtx.fill();
+
+    // inner core
+    pCtx.beginPath(); pCtx.arc(cx,cy,r*0.52,0,Math.PI*2);
+    pCtx.strokeStyle='rgba(0,229,255,0.15)'; pCtx.lineWidth=1; pCtx.stroke();
+
+    // rpm arc
+    const rpmPct = Math.min(1, rpmVal/16500);
+    pCtx.beginPath(); pCtx.arc(cx,cy,r-28,-Math.PI/2, -Math.PI/2 + rpmPct*Math.PI*2);
+    pCtx.strokeStyle='rgba(255,0,229,0.7)'; pCtx.lineWidth=3; pCtx.lineCap='round';
+    pCtx.shadowColor='#ff00e5'; pCtx.shadowBlur=12; pCtx.stroke(); pCtx.shadowBlur=0;
+  }
+
+  function drawTernary(groundV, phaseIdx, dt){
+    const w = ternaryCanvas.clientWidth, h = ternaryCanvas.clientHeight;
+    tCtx.clearRect(0,0,w,h);
+
+    // background zones
+    const zones = [
+      {y:0, h:h*0.33, c:'rgba(0,229,255,0.08)', t:'+1 YES'},
+      {y:h*0.33, h:h*0.34, c:'rgba(255,255,255,0.06)', t:'0 GROUND'},
+      {y:h*0.67, h:h*0.33, c:'rgba(255,0,229,0.08)', t:'-1 NO'},
+    ];
+    zones.forEach(z=>{
+      tCtx.fillStyle=z.c; tCtx.fillRect(0,z.y,w,z.h);
+    });
+
+    // tracks
+    const bx = w*0.27, tx = w*0.73;
+    [bx,tx].forEach(x=>{
+      tCtx.strokeStyle='rgba(255,255,255,0.08)'; tCtx.lineWidth=2;
+      tCtx.beginPath(); tCtx.moveTo(x, h*0.12); tCtx.lineTo(x, h*0.88); tCtx.stroke();
+    });
+
+    // center line
+    tCtx.strokeStyle='rgba(255,255,255,0.15)'; tCtx.setLineDash([3,4]);
+    tCtx.beginPath(); tCtx.moveTo(0,h/2); tCtx.lineTo(w,h/2); tCtx.stroke(); tCtx.setLineDash([]);
+
+    // binary (left) - unstable
+    const now = performance.now()*0.006;
+    const binaryState = Math.sin(now*2.3 + phaseIdx) > 0 ? 1 : -1;
+    const bY = binaryState>0 ? h*0.2 : h*0.8;
+    // glitch lines
+    tCtx.strokeStyle='rgba(255,42,109,0.4)'; tCtx.lineWidth=1;
+    for(let i=0;i<3;i++){
+      const gy = bY + (Math.random()-0.5)*12;
+      tCtx.beginPath(); tCtx.moveTo(bx-18, gy); tCtx.lineTo(bx+18, gy); tCtx.stroke();
+    }
+    tCtx.shadowColor='#ff2a6d'; tCtx.shadowBlur=18; tCtx.fillStyle='#ff2a6d';
+    tCtx.beginPath(); tCtx.arc(bx,bY,7,0,Math.PI*2); tCtx.fill(); tCtx.shadowBlur=0;
+
+    // ternary (right) - stable with ground
+    const targetState = groundV>0.4 ? 0 : binaryState;
+    const targetY = targetState===1 ? h*0.2 : targetState===-1 ? h*0.8 : h*0.5;
+    if(ternY===null) ternY=targetY;
+    ternY += (targetY - ternY) * Math.min(1, dt*6);
+    const tColor = groundV>0.4 ? '#00e5ff' : (targetState>0 ? '#00e5ff' : '#ff00e5');
+    tCtx.shadowColor=tColor; tCtx.shadowBlur=20; tCtx.fillStyle=tColor;
+    tCtx.beginPath(); tCtx.arc(tx,ternY,8,0,Math.PI*2); tCtx.fill(); tCtx.shadowBlur=0;
+    tCtx.fillStyle='rgba(0,229,255,0.2)'; tCtx.beginPath(); tCtx.arc(tx,ternY,16,0,Math.PI*2); tCtx.fill();
+
+    // labels
+    tCtx.font='10px "JetBrains Mono"'; tCtx.textAlign='center';
+    tCtx.fillStyle='rgba(255,255,255,0.7)'; tCtx.fillText('+1', 14, h*0.2+3);
+    tCtx.fillText('0', 14, h*0.5+3); tCtx.fillText('-1', 14, h*0.8+3);
+    tCtx.fillStyle='rgba(255,42,109,0.8)'; tCtx.fillText('BINARY', bx, h-8);
+    tCtx.fillStyle='rgba(0,229,255,0.9)'; tCtx.fillText('TERNARY', tx, h-8);
+
+    return targetState;
+  }
+
+  function drawToroid(dt, rpmV){
+    const w = toroidCanvas.clientWidth, h = toroidCanvas.clientHeight;
+    oCtx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2 + 6;
+
+    // glow base
+    const bg = oCtx.createRadialGradient(cx,cy,10,cx,cy,120);
+    bg.addColorStop(0,'rgba(0,229,255,0.12)'); bg.addColorStop(1,'rgba(0,0,0,0)');
+    oCtx.fillStyle=bg; oCtx.beginPath(); oCtx.arc(cx,cy,120,0,Math.PI*2); oCtx.fill();
+
+    for(let ring=0; ring<3; ring++){
+      const ry = 54 - ring*14, rx = 110 - ring*18, yOff = ring*6;
+      // outer
+      oCtx.beginPath(); oCtx.ellipse(cx, cy+yOff, rx, ry, 0,0,Math.PI*2);
+      oCtx.strokeStyle=`rgba(0,229,255,${0.18+ring*0.07})`; oCtx.lineWidth=2;
+      oCtx.shadowColor='#00e5ff'; oCtx.shadowBlur=12; oCtx.stroke(); oCtx.shadowBlur=0;
+      // inner
+      oCtx.beginPath(); oCtx.ellipse(cx, cy+yOff, rx-18, ry-10, 0,0,Math.PI*2);
+      oCtx.strokeStyle=`rgba(255,0,229,${0.12+ring*0.06})`; oCtx.lineWidth=1; oCtx.stroke();
+
+      // particles
+      particles.filter(p=>p.ring===ring).forEach(p=>{
+        p.a += dt * p.s * (0.5 + rpmV/8000);
+        const px = cx + Math.cos(p.a)* (rx-9);
+        const py = cy + yOff + Math.sin(p.a)* (ry-5);
+        oCtx.shadowColor = ring===1 ? '#ff00e5' : '#00e5ff'; oCtx.shadowBlur=14;
+        oCtx.fillStyle = ring===1 ? '#ff00e5' : '#00e5ff';
+        oCtx.beginPath(); oCtx.arc(px,py,2.4,0,Math.PI*2); oCtx.fill(); oCtx.shadowBlur=0;
+      });
+    }
+    // center core
+    oCtx.fillStyle='rgba(0,229,255,0.9)'; oCtx.shadowColor='#00e5ff'; oCtx.shadowBlur=20;
+    oCtx.beginPath(); oCtx.arc(cx,cy+6,3.5,0,Math.PI*2); oCtx.fill(); oCtx.shadowBlur=0;
+  }
+
+  function loop(now){
+    const dt = Math.min(0.033, (now - last)/1000); last = now;
+    const rpmV = Number(rpm.value);
+    const offDeg = Number(offset.value);
+    const groundV = Number(ground.value)/100;
+
+    const rps = (rpmV/16500)*5 + 0.02; // visual
+    angle += dt * rps * Math.PI*2;
+    const dispAngle = angle + offDeg*Math.PI/180;
+    const norm = ((dispAngle % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+    const phaseIdx = Math.floor(norm / (Math.PI/2)) % 4;
+    const current = phases[phaseIdx];
+
+    drawPhase(dispAngle, current, rpmV);
+    const ternaryState = drawTernary(groundV, phaseIdx, dt);
+    drawToroid(dt, rpmV);
+
+    // update DOM
+    phaseNumber.textContent = current.n;
+    phaseLabel.textContent = current.l;
+    phaseSub.textContent = current.deg + '° • ' + current.info;
+    readPhase.textContent = current.n + ' • ' + current.l;
+    readFreq.textContent = (rpmV/60).toFixed(2) + ' Hz';
+    readAngle.textContent = Math.round(norm*180/Math.PI) + '°';
+    cards.forEach((c,i)=> c.classList.toggle('active', i===phaseIdx));
+
+    // engine firing
+    cylinders.forEach((el,i)=> el.classList.toggle('firing', i%4===phaseIdx));
+    engineRpm.textContent = Math.round(rpmV).toLocaleString() + ' RPM';
+
+    // always yes
+    const groundActive = groundV > 0.4 && ternaryState===0;
+    if(groundActive){
+      alwaysYes.style.color = '#00e5ff';
+      alwaysYes.style.textShadow = '0 0 14px rgba(0,229,255,0.9)';
+      yesLight.style.background = '#00e5ff';
+      yesLight.style.boxShadow = '0 0 12px #00e5ff';
+      yesLight.style.borderColor = 'rgba(0,229,255,0.8)';
+      yesGlow.style.opacity = '1';
+    } else {
+      alwaysYes.style.color = 'rgba(255,255,255,0.28)';
+      alwaysYes.style.textShadow = 'none';
+      yesLight.style.background = 'rgba(255,255,255,0.1)';
+      yesLight.style.boxShadow = 'none';
+      yesLight.style.borderColor = 'rgba(255,255,255,0.2)';
+      yesGlow.style.opacity = '0';
+    }
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // init values
+  rpmVal.textContent = Number(rpm.value).toLocaleString();
+  offsetVal.textContent = offset.value + '°';
+  groundVal.textContent = ground.value + '%';
+})();
+</script>
+</body>
+</html>

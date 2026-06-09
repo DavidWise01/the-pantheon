@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONOS PULSAR IGNITION</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000010; overflow:hidden; font-family: 'SF Mono', 'Roboto Mono', ui-monospace, monospace; color:#cfffff; }
+  canvas { display:block; }
+  #hud {
+    position:fixed; top:24px; left:24px; z-index:10;
+    background: linear-gradient(180deg, rgba(0,20,30,0.85), rgba(0,8,16,0.7));
+    border:1px solid rgba(0,255,255,0.25); border-radius:16px; padding:18px 22px;
+    backdrop-filter: blur(16px); width:300px;
+    box-shadow: 0 0 40px rgba(0,255,255,0.15), inset 0 0 20px rgba(0,255,255,0.05), 0 8px 32px rgba(0,0,0,0.8);
+  }
+  .title {
+    font-size:20px; font-weight:800; letter-spacing:0.18em; color:#e0ffff;
+    text-shadow: 0 0 12px #00ffff, 0 0 30px #00aaff; margin-bottom:12px;
+  }
+  .row { display:flex; justify-content:space-between; font-size:12px; margin:6px 0; letter-spacing:0.06em; opacity:0.9; }
+  .row b { color:#fff; text-shadow:0 0 8px #0ff; font-weight:600; }
+  .row.small { font-size:10px; opacity:0.65; margin-top:8px; text-transform:uppercase; }
+  .seq {
+    margin:12px -4px; padding:10px; background:rgba(0,40,60,0.5); border-radius:10px;
+    border:1px solid rgba(0,255,255,0.15); font-size:14px; letter-spacing:0.25em; text-align:center;
+    color:#7dd3fc; text-shadow:0 0 10px rgba(0,200,255,0.8);
+  }
+  .bar { height:5px; background:rgba(0,255,255,0.08); border-radius:3px; overflow:hidden; margin:10px 0 6px; box-shadow:inset 0 0 8px rgba(0,0,0,0.8); }
+  #barFill { height:100%; width:0%; background:linear-gradient(90deg, #00ffff, #7b61ff, #ff44ff); box-shadow:0 0 12px #0ff; transition:width 0.15s linear; }
+  #center-flash {
+    position:fixed; inset:0; display:grid; place-items:center; pointer-events:none; z-index:20;
+    font-size:clamp(28px,7vw,84px); font-weight:900; letter-spacing:0.2em; color:#fff;
+    text-shadow:0 0 20px #00ffff, 0 0 50px #00ffff, 0 0 120px #7b61ff; opacity:0; transform:scale(0.9);
+    transition:opacity 0.3s, transform 0.3s;
+  }
+  #center-flash.show { opacity:1; transform:scale(1); animation:flash 1.4s ease-out forwards; }
+  @keyframes flash { 0%{opacity:0;letter-spacing:0.5em} 15%{opacity:1;letter-spacing:0.2em} 70%{opacity:1} 100%{opacity:0;letter-spacing:0.2em} }
+  #hint { position:fixed; bottom:20px; right:24px; font-size:10px; opacity:0.5; letter-spacing:0.1em; }
+  @media (max-width:600px){ #hud{top:12px;left:12px;right:12px;width:auto;transform:scale(0.9);transform-origin:top left} }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="title">CHRONOS PULSAR</div>
+  <div class="row"><span>IGNITION</span><b id="ign">RAMPING</b></div>
+  <div class="row"><span>SPIN</span><b id="spin">0 Hz</b></div>
+  <div class="seq" id="seq">321 -+ 0 : =1</div>
+  <div class="bar"><div id="barFill"></div></div>
+  <div class="row small"><span>PULSAR PHASE</span><b>LOCKED TO TOPH</b></div>
+  <div class="row small"><span>STATUS</span><b>BASE 2 PERSIST • JETS ONLINE</b></div>
+</div>
+<div id="center-flash">PULSAR IGNITED</div>
+<div id="hint">DRAG TO ORBIT • SCROLL TO ZOOM</div>
+<canvas id="c"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const canvas = document.getElementById('c');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000518, 0.0015);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 4000);
+camera.position.set(0, 22, 48);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.05;
+controls.minDistance = 18; controls.maxDistance = 140;
+controls.autoRotate = true; controls.autoRotateSpeed = 0.25;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.8, 0.6, 0.12);
+composer.addPass(bloomPass);
+
+// LIGHTS
+scene.add(new THREE.AmbientLight(0x0a1a2a, 0.6));
+const coreLight = new THREE.PointLight(0x88eeff, 20, 120, 2);
+scene.add(coreLight);
+
+// STARFIELD 20000
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(20000*3);
+for(let i=0;i<20000;i++){
+  const r = 600 + Math.random()*1800;
+  const th = Math.random()*Math.PI*2;
+  const ph = Math.acos(2*Math.random()-1);
+  starPos[i*3] = r*Math.sin(ph)*Math.cos(th);
+  starPos[i*3+1] = r*Math.sin(ph)*Math.sin(th);
+  starPos[i*3+2] = r*Math.cos(ph);
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({size:0.9, color:0x88bbff, transparent:true, opacity:0.7, sizeAttenuation:true}));
+scene.add(stars);
+
+// 2 PERSISTENT TOPHS
+const tophA = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(11, 2.6, 400, 32, 2, 3),
+  new THREE.MeshBasicMaterial({color:0x00e5ff, wireframe:true, transparent:true, opacity:0.34, blending:THREE.AdditiveBlending, depthWrite:false})
+);
+const tophB = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(11, 2.6, 400, 32, 3, 2),
+  new THREE.MeshBasicMaterial({color:0xff3bff, wireframe:true, transparent:true, opacity:0.28, blending:THREE.AdditiveBlending, depthWrite:false})
+);
+tophA.rotation.x = 0.4; tophB.rotation.x = -0.3;
+scene.add(tophA, tophB);
+
+// n-system breathing layers
+const nGroup = new THREE.Group();
+[16,23,31].forEach((r,i)=>{
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(r, 48),
+    new THREE.MeshBasicMaterial({color: i===1?0x00ffff:0x7744ff, wireframe:true, transparent:true, opacity:0.04+ i*0.015, blending:THREE.AdditiveBlending})
+  );
+  nGroup.add(m);
+});
+scene.add(nGroup);
+
+// IE1/IE2 with trails
+const ie1 = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), new THREE.MeshBasicMaterial({color:0x00ffff}));
+const ie2 = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), new THREE.MeshBasicMaterial({color:0xff55ff}));
+scene.add(ie1, ie2);
+function makeTrail(col){
+  const len=140; const arr=new Float32Array(len*3);
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const line=new THREE.Line(geo, new THREE.LineBasicMaterial({color:col, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending}));
+  return {line, arr, len, idx:0};
+}
+const trail1 = makeTrail(0x00ffff); const trail2 = makeTrail(0xff55ff);
+scene.add(trail1.line, trail2.line);
+
+// PULSAR CORE
+const bumpCanvas = document.createElement('canvas'); bumpCanvas.width=bumpCanvas.height=256;
+const bctx=bumpCanvas.getContext('2d'); const img=bctx.createImageData(256,256);
+for(let i=0;i<img.data.length;i+=4){ const v=Math.random()*255; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255; }
+bctx.putImageData(img,0,0);
+const bumpTex = new THREE.CanvasTexture(bumpCanvas);
+
+const core = new THREE.Mesh(
+  new THREE.SphereGeometry(1.2, 64, 64),
+  new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xaaffff, emissiveIntensity:0, metalness:1, roughness:0.08, bumpMap:bumpTex, bumpScale:0.04})
+);
+scene.add(core);
+
+// LENS FLARE
+const flareCanvas = document.createElement('canvas'); flareCanvas.width=256; flareCanvas.height=256;
+const fctx = flareCanvas.getContext('2d'); const grad=fctx.createRadialGradient(128,128,0,128,128,128);
+grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(0.2,'rgba(140,255,255,0.8)'); grad.addColorStop(0.5,'rgba(0,200,255,0.2)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+fctx.fillStyle=grad; fctx.fillRect(0,0,256,256);
+const flare = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(flareCanvas), blending:THREE.AdditiveBlending, color:0x99ffff, transparent:true, opacity:0.9}));
+flare.scale.setScalar(5); scene.add(flare);
+
+// LIGHTHOUSE BEAMS
+const beamGroup = new THREE.Group();
+const beamMat = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide});
+for(let i=0;i<2;i++){
+  const g = new THREE.ConeGeometry(8,80,32,1,true); g.translate(0,-40,0);
+  const m = new THREE.Mesh(g, beamMat);
+  m.rotation.z = i===0? Math.PI/2 : -Math.PI/2;
+  beamGroup.add(m);
+}
+scene.add(beamGroup);
+
+// ACCRETION DISK
+const diskGeo = new THREE.TorusGeometry(4, 0.42, 32, 128);
+const disk = new THREE.Mesh(diskGeo, new THREE.MeshStandardMaterial({color:0xffaa88, emissive:0xff4400, emissiveIntensity:2.2, transparent:true, opacity:0.62, roughness:0.35, metalness:0.6, side:THREE.DoubleSide}));
+disk.rotation.x = Math.PI/2.15;
+scene.add(disk);
+const diskOrig = diskGeo.attributes.position.array.slice();
+
+// PARTICLE JETS
+function makeJet(dir){
+  const max=2000; const pos=new Float32Array(max*3); const vel=new Float32Array(max*3); const life=new Float32Array(max);
+  for(let i=0;i<max;i++){ pos[i*3+1]=dir*999; life[i]=0; }
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const pts=new THREE.Points(geo, new THREE.PointsMaterial({size:0.26, color:0x88ffff, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false}));
+  return {pts,pos,vel,life,max,geo,dir,spawn:0};
+}
+const jetN = makeJet(1); const jetS = makeJet(-1);
+scene.add(jetN.pts, jetS.pts);
+
+function updateJet(j, dt, spawnRate){
+  const {pos,vel,life,max} = j;
+  for(let s=0;s<spawnRate;s++){
+    const i = j.spawn = (j.spawn+1)%max;
+    pos[i*3]= (Math.random()-0.5)*0.4;
+    pos[i*3+1]= j.dir*1.6;
+    pos[i*3+2]= (Math.random()-0.5)*0.4;
+    vel[i*3]= (Math.random()-0.5)*0.3 + Math.cos(core.rotation.y)*0.2;
+    vel[i*3+1]= j.dir*(7+Math.random()*3);
+    vel[i*3+2]= (Math.random()-0.5)*0.3 + Math.sin(core.rotation.y)*0.2;
+    life[i]= 2.8+Math.random()*0.6;
+  }
+  for(let i=0;i<max;i++){
+    if(life[i]>0){
+      pos[i*3]+=vel[i*3]*dt;
+      pos[i*3+1]+=vel[i*3+1]*dt;
+      pos[i*3+2]+=vel[i*3+2]*dt;
+      vel[i*3]*=0.999; vel[i*3+1]*=0.999; vel[i*3+2]*=0.999;
+      life[i]-=dt;
+      if(life[i]<=0) pos[i*3+1]=j.dir*999;
+    }
+  }
+  j.geo.attributes.position.needsUpdate=true;
+}
+
+// EMP RINGS
+const rings=[];
+for(let i=0;i<12;i++){
+  const m=new THREE.Mesh(new THREE.RingGeometry(2,2.6,96), new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0, side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false}));
+  m.rotation.x=Math.PI/2; m.visible=false; scene.add(m);
+  rings.push({m,active:false,life:0});
+}
+function fireRing(){
+  const r=rings.find(x=>!x.active); if(!r) return;
+  r.active=true; r.life=0; r.m.visible=true; r.m.scale.set(0.2,0.2,1);
+  const hue = 0.52 + Math.random()*0.32;
+  r.m.material.color.setHSL(hue,1,0.65);
+  r.m.material.opacity=0.85;
+  shake=0.6;
+}
+
+// HUD refs
+const ignEl=document.getElementById('ign');
+const spinEl=document.getElementById('spin');
+const seqEl=document.getElementById('seq');
+const barFill=document.getElementById('barFill');
+const flashEl=document.getElementById('center-flash');
+
+let shake=0, firstFired=false, prevStep=-1;
+let spinMult=1, beamBoost=0, coreDim=1, jetPulse=false;
+
+const clock=new THREE.Clock();
+
+function updateTrail(t, arr, len, x,y,z){
+  for(let i=len-1;i>0;i--){ arr[i*3]=arr[(i-1)*3]; arr[i*3+1]=arr[(i-1)*3+1]; arr[i*3+2]=arr[(i-1)*3+2]; }
+  arr[0]=x; arr[1]=y; arr[2]=z;
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  const dt=Math.min(clock.getDelta(),0.033);
+  
+  controls.update();
+  
+  // IGNITION
+  const ignition = Math.min(t/3,1);
+  barFill.style.width = (ignition*100)+'%';
+  if(ignition<1){
+    ignEl.textContent = 'RAMPING '+Math.floor(ignition*100)+'%';
+    bloomPass.strength = THREE.MathUtils.lerp(bloomPass.strength, 2.2*ignition, 0.08);
+    core.material.emissiveIntensity = ignition*5;
+    beamMat.opacity = ignition*0.08;
+  } else {
+    ignEl.textContent = 'ACTIVE';
+    bloomPass.strength = THREE.MathUtils.lerp(bloomPass.strength, 1.85, 0.02);
+  }
+  if(!firstFired && t>3){
+    firstFired=true; fireRing(); flashEl.classList.add('show'); setTimeout(()=>flashEl.classList.remove('show'),1400);
+  }
+  
+  // 321 RHYTHM
+  const cycle=4.2; const phase=(t%cycle)/cycle;
+  const steps=['3','2','1','-+','0','=1']; let stepIdx;
+  if(phase<0.166) stepIdx=0; else if(phase<0.332) stepIdx=1; else if(phase<0.498) stepIdx=2; else if(phase<0.664) stepIdx=3; else if(phase<0.83) stepIdx=4; else stepIdx=5;
+  seqEl.innerHTML = steps.map((s,i)=> i===stepIdx? `<span style="color:#fff;text-shadow:0 0 12px #0ff">[${s}]</span>` : s).join(' ');
+  
+  if(stepIdx!==prevStep){
+    prevStep=stepIdx;
+    spinMult=1; beamBoost=0; coreDim=1; jetPulse=false;
+    if(stepIdx===0) spinMult=1.4;
+    if(stepIdx===1) beamBoost=0.12;
+    if(stepIdx===2) fireRing();
+    if(stepIdx===3) jetPulse=true;
+    if(stepIdx===4) coreDim=0.25;
+  }
+  
+  // PULSAR SPIN - 48Hz feel
+  const baseSpin = 0.8 * spinMult;
+  core.rotation.y += baseSpin;
+  beamGroup.rotation.y = core.rotation.y;
+  const flicker = 4 + Math.sin(t*30)*1.8 + Math.sin(t*47)*0.7;
+  if(ignition>=1) core.material.emissiveIntensity = flicker * coreDim;
+  coreLight.intensity = 12 + flicker*2;
+  coreLight.color.setHSL(0.54, 1, 0.7 + Math.sin(t*30)*0.1);
+  beamMat.opacity = (ignition>=1?0.15:ignition*0.08) + beamBoost + Math.sin(t*20)*0.02;
+  flare.material.opacity = 0.7 + Math.sin(t*30)*0.2;
+  flare.scale.setScalar(5.2 + Math.sin(t*28)*0.4);
+  spinEl.textContent = Math.round(48*spinMult + Math.sin(t*30)*1.5) + ' Hz';
+  
+  // TOPHS counter rotate, illuminated
+  tophA.rotation.y += 0.008; tophB.rotation.y -= 0.011;
+  tophA.rotation.z = Math.sin(t*0.3)*0.1; tophB.rotation.z = -Math.sin(t*0.27)*0.1;
+  const pulseGlow = 0.34 + ignition*0.18 + Math.sin(t*2.1)*0.05;
+  tophA.material.opacity = pulseGlow; tophB.material.opacity = pulseGlow*0.85;
+  
+  // n-system breathe
+  nGroup.children.forEach((m,i)=>{ m.scale.setScalar(1+Math.sin(t*0.6+i)*0.035); m.rotation.y+=0.001*(i+1); });
+  nGroup.rotation.y += 0.0008;
+  
+  // IE1/IE2
+  const a1=t*0.7, a2=-t*0.95+2;
+  ie1.position.set(Math.cos(a1)*13.5, Math.sin(a1*1.3)*2, Math.sin(a1)*13.5);
+  ie2.position.set(Math.cos(a2)*13.5, Math.cos(a2*1.1)*2.2, Math.sin(a2)*13.5);
+  updateTrail(t, trail1.arr, trail1.len, ie1.position.x, ie1.position.y, ie1.position.z); trail1.line.geometry.attributes.position.needsUpdate=true;
+  updateTrail(t, trail2.arr, trail2.len, ie2.position.x, ie2.position.y, ie2.position.z); trail2.line.geometry.attributes.position.needsUpdate=true;
+  
+  // DISK wobble
+  disk.rotation.z -= 0.012;
+  const pa = disk.geometry.attributes.position;
+  for(let i=0;i<pa.count;i++){
+    const ix=i*3, ox=diskOrig[ix], oy=diskOrig[ix+1], oz=diskOrig[ix+2];
+    const ang=Math.atan2(oy,ox); const rad=Math.hypot(ox,oy);
+    const wob = Math.sin(t*3.5 + rad*1.8 + ang*4)*0.14;
+    pa.array[ix]=ox+Math.cos(ang)*wob*0.15;
+    pa.array[ix+1]=oy+Math.sin(ang)*wob*0.15;
+    pa.array[ix+2]=oz+Math.sin(t*4 + i*0.03)*0.08;
+  }
+  pa.needsUpdate=true;
+  disk.material.emissiveIntensity = 2.0 + Math.sin(t*5)*0.5 + ignition;
+  
+  // JETS
+  updateJet(jetN, dt, jetPulse?52:7);
+  updateJet(jetS, dt, jetPulse?52:7);
+  
+  // RINGS expand
+  rings.forEach(r=>{
+    if(!r.active) return;
+    r.life+=dt;
+    const s=0.2 + r.life*22;
+    r.m.scale.set(s,s,1);
+    r.m.material.opacity = 0.85*(1 - r.life/2.1);
+    r.m.rotation.z += dt*0.8;
+    if(r.life>2.1){ r.active=false; r.m.visible=false; }
+  });
+  
+  // Stars slow drift
+  stars.rotation.y += 0.00015; stars.rotation.x = Math.sin(t*0.05)*0.02;
+  
+  // Camera shake
+  if(shake>0.001){
+    camera.position.x += (Math.random()-0.5)*shake*0.3;
+    camera.position.y += (Math.random()-0.5)*shake*0.2;
+    shake *= 0.88;
+  }
+  coreLight.position.copy(core.position);
+  flare.position.copy(core.position);
+  
+  composer.render();
+}
+animate();
+
+addEventListener('resize', ()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ballroom Engine – Three Sines</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bone:#F8F5F0; --void:#5B3A8A; }
+  html, body { background: var(--bone); }
+  body { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  * { -webkit-font-smoothing: antialiased; }
+  canvas { touch-action: none; }
+</style>
+</head>
+<body class="text-stone-800 selection:bg-[#5B3A8A]/20">
+<div class="min-h-screen">
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-[#F8F5F0]/80 border-b border-[#5B3A8A]/10">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#5B3A8A] animate-pulse"></div>
+        <h1 class="text-[17px] md:text-xl font-medium tracking-tight">Ballroom Engine – Three Sines</h1>
+        <span class="hidden md:inline text-[10px] px-2 py-0.5 rounded-full bg-[#5B3A8A]/10 text-[#5B3A8A] mono">819d → 81.9s</span>
+      </div>
+      <div class="flex items-center gap-5 mono text-[12px] md:text-[13px]">
+        <div>Engine <span id="tRead" class="text-[#5B3A8A] font-semibold">00.00</span> s</div>
+        <div class="hidden sm:block w-px h-4 bg-stone-300"></div>
+        <div class="hidden sm:block">Date <span id="dateRead" class="font-medium">2016-06-01</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-5 md:py-8 grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
+    <section class="space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnPlay" class="px-3 py-1.5 rounded-lg bg-[#5B3A8A] text-[#F8F5F0] text-sm font-medium hover:opacity-90 active:opacity-80 transition">Pause</button>
+        <button id="btnStepBack" class="px-2.5 py-1.5 rounded-lg bg-white border border-stone-300 text-sm hover:bg-stone-50">−0.01s</button>
+        <button id="btnStepFwd" class="px-2.5 py-1.5 rounded-lg bg-white border border-stone-300 text-sm hover:bg-stone-50">+0.01s</button>
+        <button id="btnReset" class="px-2.5 py-1.5 rounded-lg bg-white border border-stone-300 text-sm hover:bg-stone-50">Reset</button>
+        <div class="flex items-center gap-1.5 ml-2 pl-2 border-l border-stone-300">
+          <span class="text-xs text-stone-500">Speed</span>
+          <select id="speed" class="text-xs rounded-md border-stone-300 bg-white px-1.5 py-1">
+            <option>0.25x</option>
+            <option>0.5x</option>
+            <option selected>1x</option>
+            <option>2x</option>
+            <option>5x</option>
+          </select>
+        </div>
+        <div class="ml-auto hidden md:flex items-center gap-2 text-[11px] text-stone-500">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>60 fps • requestAnimationFrame</span>
+        </div>
+      </div>
+
+      <div class="relative bg-white/60 rounded-2xl shadow-sm border border-[#5B3A8A]/10 p-3">
+        <div class="flex items-center justify-between mb-1.5 px-1">
+          <div class="text-[11px] uppercase tracking-wider text-stone-500 font-medium">Three-Phase Sines (120°)</div>
+          <div class="flex items-center gap-3 mono text-[11px]">
+            <span class="flex items-center gap-1"><i class="w-3 h-[2px] bg-[#5B3A8A] inline-block"></i>A</span>
+            <span class="flex items-center gap-1"><i class="w-3 h-[2px] bg-[#7a4ea5] inline-block"></i>B</span>
+            <span class="flex items-center gap-1"><i class="w-3 h-[2px] bg-[#a37ac4] inline-block"></i>C</span>
+          </div>
+        </div>
+        <canvas id="sines" class="w-full h-[110px] rounded-xl"></canvas>
+      </div>
+
+      <div class="relative bg-gradient-to-b from-white/80 to-white/60 rounded-2xl shadow-sm border border-[#5B3A8A]/10 p-3 md:p-5 flex justify-center overflow-hidden">
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#5B3A8A 1px, transparent 1px); background-size: 18px 18px;"></div>
+        <div class="relative">
+          <canvas id="engine" class="w-[min(88vw,680px)] h-[min(88vw,680px)]"></canvas>
+          <div id="herTip" class="absolute left-1/2 -translate-x-1/2 top-4 pointer-events-none transition-all duration-300 opacity-0 scale-95 bg-[#5B3A8A] text-[#F8F5F0] text-[11px] font-medium px-3 py-1.5 rounded-full shadow-[0_4px_20px_rgba(91,58,138,0.35)] whitespace-nowrap">-211 mV – HER / mitochondrial window</div>
+        </div>
+      </div>
+
+      <div class="bg-white/60 rounded-2xl shadow-sm border border-[#5B3A8A]/10 p-3">
+        <div class="flex items-center justify-between mb-1 px-1">
+          <div class="text-[11px] uppercase tracking-wider text-stone-500 font-medium">Engine Timeline • 819-day Cycle</div>
+          <div class="mono text-[11px] text-stone-500">Start: 2016-06-01</div>
+        </div>
+        <canvas id="timeline" class="w-full h-[70px] rounded-xl"></canvas>
+      </div>
+    </section>
+
+    <aside class="space-y-4">
+      <div class="bg-white/70 backdrop-blur rounded-2xl shadow-sm border border-[#5B3A8A]/10 p-4">
+        <h2 class="text-sm font-semibold mb-3 text-[#5B3A8A] flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-5"/></svg>
+          Phase Readout
+        </h2>
+        <div class="mono text-[12.5px] space-y-2">
+          <div class="flex justify-between"><span class="text-stone-500">Sine A</span><span id="aRead" class="text-[#5B3A8A]">0.0 mV</span></div>
+          <div class="flex justify-between"><span class="text-stone-500">Sine B</span><span id="bRead" class="text-[#7a4ea5]">0.0 mV</span></div>
+          <div class="flex justify-between"><span class="text-stone-500">Sine C</span><span id="cRead" class="text-[#a37ac4]">0.0 mV</span></div>
+          <div class="h-px bg-stone-200 my-2"></div>
+          <div class="flex justify-between"><span class="text-stone-500">B − C Diff</span><span id="diffRead" class="font-semibold">0.0 mV</span></div>
+        </div>
+      </div>
+
+      <div class="bg-[#5B3A8A]/[0.04] rounded-2xl shadow-sm border border-[#5B3A8A]/20 p-4">
+        <h2 class="text-sm font-semibold mb-2.5 text-[#5B3A8A] flex items-center justify-between">
+          <span>-211 mV Marker</span>
+          <span id="herStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-stone-200 text-stone-600 mono">idle</span>
+        </h2>
+        <div id="herReadout" class="rounded-xl bg-white/70 border border-[#5B3A8A]/15 p-3 transition-all duration-300">
+          <div class="flex items-baseline justify-between">
+            <div class="mono text-2xl font-semibold tracking-tight text-[#5B3A8A]"><span id="vbcRead">-0.0</span></div>
+            <div class="text-[11px] text-stone-500">mV</div>
+          </div>
+          <div class="mt-2 text-[11px] leading-snug text-stone-600">Triggers when sin(B) − sin(C) ≈ −0.700<br>Target: <span class="mono">-211.0 mV</span></div>
+          <div class="mt-2.5 flex items-center justify-between text-[11px]">
+            <span class="text-stone-500">Crossings</span>
+            <span id="herCount" class="mono font-medium">0</span>
+          </div>
+        </div>
+        <p class="mt-3 text-[11px] text-stone-600 leading-relaxed">Located on Carbon/Bionic/Elemental ring (7). Pulses ring thickness and draws alignment guide across all 10 layers.</p>
+      </div>
+
+      <div class="bg-white/70 rounded-2xl shadow-sm border border-[#5B3A8A]/10 p-4">
+        <h2 class="text-sm font-semibold mb-2.5 text-[#5B3A8A]">Concentric Rings</h2>
+        <ol class="text-[12px] space-y-1 text-stone-600">
+          <li>1. <b>3-Phase</b> <span class="text-stone-400">— core</span></li>
+          <li>2. O3</li>
+          <li>3. Plasma</li>
+          <li>4. Photonic</li>
+          <li>5. Electric</li>
+          <li>6. Atomic</li>
+          <li>7. <b class="text-[#5B3A8A]">Carbon / Bionic / Elemental</b></li>
+          <li>8. Quantum</li>
+          <li>9. Holographic</li>
+          <li>10. Ethereal <span class="text-stone-400">— edge</span></li>
+        </ol>
+        <div class="mt-3 pt-3 border-t border-stone-200 text-[11px] text-stone-500">
+          Witness dots: Inside & Outside tethered by 3 vectors to Carbon ring. Double helix center with 4 entrances.
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(() => {
+  const CYCLE_SEC = 81.9;
+  const CYCLE_DAYS = 819;
+  const START_DATE = new Date('2016-06-01T00:00:00Z');
+  const BASE_FREQ_CYCLES = 6;
+  const TARGET_DIFF = -0.7;
+  const MV_SCALE = 301.4285714286; // -0.7 * scale = -211
+  const VOID = '#5B3A8A';
+  const BONE = '#F8F5F0';
+
+  const $ = id => document.getElementById(id);
+  const engine = $('engine'), sines = $('sines'), timeline = $('timeline');
+  const tRead = $('tRead'), dateRead = $('dateRead');
+  const aRead = $('aRead'), bRead = $('bRead'), cRead = $('cRead'), diffRead = $('diffRead');
+  const vbcRead = $('vbcRead'), herStatus = $('herStatus'), herCountEl = $('herCount'), herReadout = $('herReadout'), herTip = $('herTip');
+  const btnPlay = $('btnPlay'), btnBack = $('btnStepBack'), btnFwd = $('btnStepFwd'), btnReset = $('btnReset'), speedSel = $('speed');
+
+  let engineTime = 0;
+  let isPlaying = true;
+  let speed = 1;
+  let prevDiff = 1;
+  let herPulseUntil = 0;
+  let crossingCount = 0;
+  let lastFrame = performance.now();
+
+  const rings = ['3-Phase','O3','Plasma','Photonic','Electric','Atomic','Carbon / Bionic / Elemental','Quantum','Holographic','Ethereal'];
+
+  function setupCanvas(c) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = c.clientWidth, h = c.clientHeight;
+    c.width = Math.max(1, Math.floor(w * dpr));
+    c.height = Math.max(1, Math.floor(h * dpr));
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c._ctx = ctx;
+  }
+  function setupAll() { [engine, sines, timeline].forEach(setupCanvas); }
+  setupAll();
+  window.addEventListener('resize', setupAll);
+
+  function roundRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+  }
+
+  function drawSines(ctx, w, h, phase) {
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = 'rgba(248,245,240,0.6)';
+    roundRect(ctx,0,0,w,h,12); ctx.fill();
+    
+    // grid
+    ctx.strokeStyle = 'rgba(91,58,138,0.08)'; ctx.lineWidth = 1;
+    for(let i=1;i<=3;i++){ const y = h*i/4; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    
+    const waves = [
+      {p:0, c:'#5B3A8A'},
+      {p:2*Math.PI/3, c:'#7a4ea5'},
+      {p:4*Math.PI/3, c:'#a37ac4'}
+    ];
+    waves.forEach(wv => {
+      ctx.beginPath();
+      for(let x=0; x<=w; x+=2){
+        const p = (x/w)*Math.PI*4 + phase + wv.p;
+        const y = h*0.52 + Math.sin(p)*34;
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = wv.c; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.stroke();
+    });
+    // cursor
+    const cx = ((phase % (Math.PI*4)) / (Math.PI*4)) * w;
+    ctx.beginPath(); ctx.moveTo(cx, 6); ctx.lineTo(cx, h-6);
+    ctx.strokeStyle = 'rgba(91,58,138,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  function drawEngine(ctx, w, h, time, vBC, now) {
+    ctx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2 + 6;
+    const maxR = Math.min(w,h)*0.44;
+    const minR = 54;
+    const step = (maxR - minR) / 9;
+    const pulse = Math.max(0, (herPulseUntil - now) / 460);
+
+    // rings
+    rings.forEach((name, i) => {
+      const r = minR + i*step;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+      const isCarbon = i===6;
+      ctx.strokeStyle = isCarbon ? `rgba(91,58,138,${0.45 + pulse*0.4})` : 'rgba(91,58,138,0.14)';
+      ctx.lineWidth = isCarbon ? (2.4 + pulse*7) : 1.25;
+      if(isCarbon && pulse>0){ ctx.shadowColor = VOID; ctx.shadowBlur = 18*pulse; }
+      ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.font = isCarbon ? '600 11px Inter' : '500 10.5px Inter';
+      ctx.fillStyle = isCarbon ? '#5B3A8A' : 'rgba(28,25,23,0.55)';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(name, cx + r + 7, cy);
+    });
+
+    const carbonR = minR + 6*step;
+
+    // alignment guide when active
+    if(pulse > 0.01){
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(cx, cy - maxR - 14); ctx.lineTo(cx, cy + maxR + 14);
+      ctx.strokeStyle = `rgba(91,58,138,${0.18 + pulse*0.3})`; ctx.lineWidth = 1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.restore();
+    }
+
+    // -211 mV tick at top (12 o'clock)
+    const tickAng = -Math.PI/2;
+    const tx = cx + carbonR * Math.cos(tickAng);
+    const ty = cy + carbonR * Math.sin(tickAng);
+    const glow = pulse>0 ? 1 : Math.max(0, 1 - Math.abs(vBC + 211)/38);
+    ctx.save(); ctx.translate(tx, ty); ctx.rotate(tickAng);
+    ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(6.5, 5); ctx.lineTo(-6.5,5); ctx.closePath();
+    ctx.fillStyle = `rgba(91,58,138,${0.55 + 0.45*glow})`;
+    ctx.shadowColor = VOID; ctx.shadowBlur = 12 + 14*glow; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.restore();
+    ctx.font = '600 11px "JetBrains Mono"'; ctx.fillStyle = pulse>0 ? VOID : 'rgba(91,58,138,0.8)';
+    ctx.textAlign = 'left'; ctx.fillText('-211 mV', tx + 10, ty - 10);
+
+    // double helix center with 4 entrances
+    const innerR = minR*0.62;
+    for(let k=0;k<4;k++){
+      const a = k*Math.PI/2;
+      ctx.beginPath(); ctx.arc(cx + innerR*Math.cos(a), cy + innerR*Math.sin(a), 3.2, 0, 7);
+      ctx.fillStyle = 'rgba(91,58,138,0.75)'; ctx.fill();
+    }
+    const helixT = time * 1.7;
+    for(let s=0; s<2; s++){
+      ctx.beginPath();
+      for(let i=-22; i<=22; i++){
+        const t = i/22;
+        const ang = t*Math.PI*2.8 + helixT + s*Math.PI;
+        const rad = 13 + 3.5*Math.sin(t*Math.PI*2.2);
+        const x = cx + rad*Math.cos(ang);
+        const y = cy + t*15 + rad*0.18*Math.sin(ang*1.3);
+        i===-22 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = s===0 ? 'rgba(91,58,138,0.9)' : 'rgba(91,58,138,0.55)';
+      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+    }
+
+    // witness dots tethered by 3 vectors
+    const innerAng = time*0.38, outerAng = innerAng + Math.PI;
+    const innerRw = carbonR - 46, outerRw = carbonR + 60;
+    const ix = cx + innerRw*Math.cos(innerAng), iy = cy + innerRw*Math.sin(innerAng);
+    const ox = cx + outerRw*Math.cos(outerAng), oy = cy + outerRw*Math.sin(outerAng);
+    
+    ctx.strokeStyle = 'rgba(91,58,138,0.28)'; ctx.lineWidth = 1;
+    for(let j=0;j<3;j++){
+      const pa = innerAng + j*2.094 + time*0.12;
+      ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(cx + carbonR*Math.cos(pa), cy + carbonR*Math.sin(pa)); ctx.stroke();
+      const qa = outerAng + j*2.094 - time*0.09;
+      ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(cx + carbonR*Math.cos(qa), cy + carbonR*Math.sin(qa)); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(ix,iy,5,0,7); ctx.fillStyle = VOID; ctx.fill();
+    ctx.beginPath(); ctx.arc(ox,oy,5,0,7); ctx.fillStyle = '#8b6fbf'; ctx.fill();
+    ctx.font = '10px Inter'; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.textAlign='center';
+    ctx.fillText('IN', ix, iy-10); ctx.fillText('OUT', ox, oy-10);
+  }
+
+  function drawTimeline(ctx, w, h){
+    ctx.clearRect(0,0,w,h);
+    const pad = 14, y = h*0.55, trackW = w - pad*2, prog = engineTime / CYCLE_SEC;
+    ctx.fillStyle = 'rgba(91,58,138,0.09)'; roundRect(ctx, pad, y-8, trackW, 16, 8); ctx.fill();
+    ctx.fillStyle = VOID; roundRect(ctx, pad, y-8, trackW*prog, 16, 8); ctx.fill();
+    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(pad + trackW*prog, y, 4.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(91,58,138,0.25)'; ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.font = '10px "JetBrains Mono"'; ctx.fillStyle = 'rgba(28,25,23,0.6)'; ctx.textAlign = 'center';
+    for(let i=0;i<=10;i++){
+      const x = pad + trackW * i/10;
+      ctx.beginPath(); ctx.moveTo(x, y+10); ctx.lineTo(x, y+16); ctx.strokeStyle='rgba(91,58,138,0.25)'; ctx.lineWidth=1; ctx.stroke();
+      const days = i * CYCLE_DAYS/10;
+      const d = new Date(START_DATE.getTime() + days*86400000);
+      const label = `${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+      ctx.fillText(label, x, y+28);
+    }
+  }
+
+  function update(now){
+    const dt = Math.min(0.05, (now - lastFrame)/1000) * speed;
+    lastFrame = now;
+    if(isPlaying){ engineTime = (engineTime + dt) % CYCLE_SEC; }
+
+    const phase = (engineTime / CYCLE_SEC) * Math.PI*2 * BASE_FREQ_CYCLES;
+    const phaseA = phase;
+    const phaseB = phase + 2.09439510239;
+    const phaseC = phase + 4.18879020479;
+    const sinA = Math.sin(phaseA), sinB = Math.sin(phaseB), sinC = Math.sin(phaseC);
+    const diffNorm = sinB - sinC;
+    const vBC = diffNorm * MV_SCALE;
+
+    if(prevDiff > TARGET_DIFF && diffNorm <= TARGET_DIFF){
+      herPulseUntil = now + 460;
+      crossingCount++;
+    }
+    prevDiff = diffNorm;
+
+    // readouts
+    tRead.textContent = engineTime.toFixed(2).padStart(5,'0');
+    const date = new Date(START_DATE.getTime() + (engineTime / CYCLE_SEC) * CYCLE_DAYS * 86400000);
+    dateRead.textContent = date.toISOString().slice(0,10);
+    aRead.textContent = (sinA*300).toFixed(1)+' mV';
+    bRead.textContent = (sinB*300).toFixed(1)+' mV';
+    cRead.textContent = (sinC*300).toFixed(1)+' mV';
+    diffRead.textContent = vBC.toFixed(1)+' mV';
+    vbcRead.textContent = vBC.toFixed(1);
+
+    const active = now < herPulseUntil;
+    herStatus.textContent = active ? 'ACTIVE' : 'idle';
+    herStatus.className = 'text-[10px] px-2 py-0.5 rounded-full mono ' + (active ? 'bg-[#5B3A8A] text-[#F8F5F0] animate-pulse' : 'bg-stone-200 text-stone-600');
+    herReadout.style.boxShadow = active ? '0 0 0 2px rgba(91,58,138,0.2), 0 8px 24px rgba(91,58,138,0.15)' : 'none';
+    herReadout.style.transform = active ? 'scale(1.01)' : 'scale(1)';
+    herCountEl.textContent = crossingCount;
+    herTip.style.opacity = active ? '1' : '0';
+    herTip.style.transform = `translate(-50%,0) scale(${active ? '1' : '0.96'})`;
+
+    // draw
+    if(sines._ctx) drawSines(sines._ctx, sines.clientWidth, sines.clientHeight, phase);
+    if(engine._ctx) drawEngine(engine._ctx, engine.clientWidth, engine.clientHeight, engineTime, vBC, now);
+    if(timeline._ctx) drawTimeline(timeline._ctx, timeline.clientWidth, timeline.clientHeight);
+
+    requestAnimationFrame(update);
+  }
+
+  btnPlay.onclick = () => { isPlaying = !isPlaying; btnPlay.textContent = isPlaying ? 'Pause' : 'Play'; };
+  btnBack.onclick = () => { isPlaying = false; engineTime = (engineTime - 0.01 + CYCLE_SEC) % CYCLE_SEC; btnPlay.textContent='Play'; };
+  btnFwd.onclick = () => { isPlaying = false; engineTime = (engineTime + 0.01) % CYCLE_SEC; btnPlay.textContent='Play'; };
+  btnReset.onclick = () => { engineTime = 0; };
+  speedSel.onchange = e => { const v = e.target.value; speed = parseFloat(v); };
+
+  // autoplay
+  requestAnimationFrame((t)=>{ lastFrame = t; update(t); });
+})();
+</script>
+</body>
+</html>

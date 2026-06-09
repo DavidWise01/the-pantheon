@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Ballroom Engine – Void Purple on Bone White</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400&display=swap" rel="stylesheet">
+<style>
+  html,body{height:100%;background:#F8F5F0}
+  body{font-family:"Instrument Sans",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:#2b2b2b; overscroll-behavior:none}
+  .fraunces{font-family:"Fraunces", Georgia, serif}
+  .ring-hit{cursor:pointer; touch-action:none}
+  *{-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body class="bg-[#F8F5F0] text-neutral-800 selection:bg-[#5B3A8A]/20 selection:text-[#3b2a5a]">
+<div class="relative w-screen h-screen overflow-hidden">
+  <!-- subtle vignette -->
+  <div class="pointer-events-none absolute inset-0" style="background: radial-gradient(800px 600px at 50% 45%, rgba(91,58,138,0.06), transparent 60%), radial-gradient(1200px 800px at 50% 50%, rgba(0,0,0,0.04), transparent 70%)"></div>
+
+  <header class="absolute left-5 top-5 md:left-10 md:top-8 z-30">
+    <h1 class="fraunces text-[22px] md:text-[28px] leading-tight tracking-tight text-neutral-800">Ballroom Engine <span class="text-[#5B3A8A]/70">—</span> Void Purple on Bone White</h1>
+    <p id="status" class="mt-1 text-[12px] md:text-[13px] text-neutral-500">Chronos practice • Cycle 5 • Day 347 of 819</p>
+    <div class="mt-2 flex items-center gap-3 text-[11px] text-neutral-500">
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#5B3A8A]/40"></span>3‑level: <b id="p3v" class="font-medium text-neutral-700">3</b></span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#5B3A8A]/60"></span>5‑level: <b id="p5v" class="font-medium text-neutral-700">4</b></span>
+    </div>
+  </header>
+
+  <!-- Right labels -->
+  <aside id="labels" class="absolute right-3 top-24 sm:top-28 md:right-8 md:top-1/2 md:-translate-y-1/2 w-[140px] sm:w-[160px] md:w-[210px] z-20">
+    <div class="backdrop-blur-[2px] bg-[#F8F5F0]/40 rounded-2xl border border-[#5B3A8A]/10 p-2.5 md:p-3 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+      <div class="text-[10px] uppercase tracking-widest text-neutral-500 mb-2 px-1">Layers, outer → inner</div>
+      <ul id="labelList" class="space-y-1.5"></ul>
+    </div>
+  </aside>
+
+  <!-- Center stage -->
+  <main class="relative w-full h-full flex items-center justify-center">
+    <div class="relative flex items-center justify-center">
+      <svg id="ballroom" viewBox="-500 -500 1000 1000" class="w-[min(92vmin,900px)] h-[min(92vmin,900px)] select-none">
+        <defs>
+          <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="10" result="b"/>
+            <feFlood flood-color="#5B3A8A" flood-opacity="0.18" result="c"/>
+            <feComposite in="c" in2="b" operator="in" result="g"/>
+            <feComposite in="SourceGraphic" in2="g" operator="over"/>
+          </filter>
+          <radialGradient id="coreGrad" cx="50%" cy="38%" r="65%">
+            <stop offset="0%" stop-color="#E7D4A6"/>
+            <stop offset="55%" stop-color="#C4A45F"/>
+            <stop offset="100%" stop-color="#9C7D3F"/>
+          </radialGradient>
+        </defs>
+        <!-- faint graticules -->
+        <g opacity="0.06" stroke="#5B3A8A" stroke-width="1">
+          <circle r="460" fill="none"/>
+          <circle r="380" fill="none"/>
+          <circle r="300" fill="none"/>
+          <circle r="220" fill="none"/>
+        </g>
+        <g id="rings"></g>
+        <!-- core -->
+        <g id="core" class="pointer-events-none">
+          <circle r="52" fill="url(#coreGrad)" stroke="#5B3A8A" stroke-opacity="0.12" stroke-width="1.5"/>
+          <circle r="38" fill="#F8F5F0" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.35"/>
+        </g>
+      </svg>
+
+      <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 mt-[74px] text-center">
+        <div class="text-[11px] tracking-wide text-neutral-600">Chronos Core</div>
+        <div class="text-[10px] text-neutral-500 -mt-0.5">June 1 2016</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Timeline + controls -->
+  <footer class="absolute inset-x-0 bottom-0 z-30">
+    <div class="mx-auto w-full max-w-[1100px] px-4 pb-4 md:pb-6">
+      <div class="flex flex-wrap items-center gap-2 mb-2.5">
+        <button id="step455" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white border border-[#5B3A8A]/15 text-[13px] shadow-sm transition">Step 45.5 days</button>
+        <button id="step182" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white border border-[#5B3A8A]/15 text-[13px] shadow-sm transition">Step 18.2 days</button>
+        <button id="autoBtn" class="px-3.5 py-1.5 rounded-full bg-[#5B3A8A] text-[#F8F5F0] text-[13px] shadow-sm hover:opacity-95 transition">Auto</button>
+        <div class="ml-auto text-[11px] text-neutral-500 hidden sm:block">819‑day cycle • 18 × 45.5 = 45 × 18.2</div>
+      </div>
+
+      <div class="relative rounded-[20px] border border-[#5B3A8A]/12 bg-white/55 backdrop-blur-md shadow-[0_4px_24px_rgba(91,58,138,0.08)]">
+        <div class="absolute left-3 top-2.5 text-[10px] uppercase tracking-widest text-neutral-500">3‑level</div>
+        <div class="absolute left-3 top-[42px] text-[10px] uppercase tracking-widest text-neutral-500">5‑level</div>
+        <svg id="timeline" viewBox="0 0 1000 84" class="w-full h-[84px] block">
+          <g id="tl3" stroke="#5B3A8A" stroke-opacity="0.35" fill="none" stroke-width="1.6" stroke-linejoin="round"></g>
+          <g id="tl5" stroke="#5B3A8A" stroke-opacity="0.55" fill="none" stroke-width="1.6" stroke-linejoin="round" transform="translate(0,40)"></g>
+        </svg>
+        <div id="playhead" class="absolute top-0 bottom-0 w-[2px] -ml-[1px] pointer-events-none" style="left:42.37%">
+          <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[6px] border-l-transparent border-r-transparent border-b-[#5B3A8A]/70"></div>
+          <div class="w-full h-full bg-gradient-to-b from-[#5B3A8A]/70 to-[#5B3A8A]/30 shadow-[0_0_12px_rgba(91,58,138,0.35)]"></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Tooltip -->
+  <div id="tip" class="pointer-events-none absolute z-50 opacity-0 transition-opacity duration-150">
+    <div class="rounded-xl border border-[#5B3A8A]/20 bg-[#F8F5F0]/95 backdrop-blur px-3 py-2 shadow-xl">
+      <div id="tipTitle" class="text-[12px] font-medium text-[#4a2f71]"></div>
+      <div id="tipFreq" class="text-[11px] text-neutral-600"></div>
+      <div id="tipMeta" class="text-[10px] text-neutral-500 mt-0.5"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const VOID = '#5B3A8A';
+  const pat3 = [1,1,1,2,2,2,3,3,3,3,2,2,2,1,1,1];
+  const pat5 = [1,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,4,4,4,3,3,3,2,2,2,1,1,1];
+
+  const rings = [
+    {name:'3-Phase Power', short:'3-Phase', freq:'60 Hz grid • three phases 120°', w3:1.00, w5:0.00},
+    {name:'O3 (Ozone resonance)', short:'O3', freq:'O₃ bend • ~23–25 MHz', w3:0.875, w5:0.125},
+    {name:'Plasma', short:'Plasma', freq:'Ion acoustic • kHz–MHz', w3:0.75, w5:0.25},
+    {name:'Photonic', short:'Photonic', freq:'Visible light • 430–750 THz', w3:0.625, w5:0.375},
+    {name:'Electric', short:'Electric', freq:'Field potential gradient', w3:0.5, w5:0.5},
+    {name:'Atomic', short:'Atomic', freq:'Larmor precession • MHz–GHz', w3:0.375, w5:0.625},
+    {name:'Quantum', short:'Quantum', freq:'Phase coherence • PHz scale', w3:0.25, w5:0.75},
+    {name:'Holographic', short:'Holographic', freq:'Interference carrier', w3:0.125, w5:0.875},
+    {name:'Ethereal', short:'Ethereal', freq:'Coherence baseline', w3:0.0, w5:1.0},
+  ];
+
+  const baseR = [420,373,330,291,256,224,196,172,150];
+  const baseSw = [14.5,13.6,12.8,12,11.2,10.4,9.6,8.8,8];
+
+  let cycle = 5;
+  let day = 347; // May 3 2026 per spec
+  const CYCLE_DAYS = 819;
+  const STEP3 = CYCLE_DAYS/18; // 45.5
+  const STEP5 = CYCLE_DAYS/45; // 18.2
+  let auto = true;
+  let hoverIdx = null;
+
+  const svg = document.getElementById('ballroom');
+  const gRings = document.getElementById('rings');
+  const labelList = document.getElementById('labelList');
+  const statusEl = document.getElementById('status');
+  const p3v = document.getElementById('p3v');
+  const p5v = document.getElementById('p5v');
+  const playhead = document.getElementById('playhead');
+  const tip = document.getElementById('tip');
+  const tipTitle = document.getElementById('tipTitle');
+  const tipFreq = document.getElementById('tipFreq');
+  const tipMeta = document.getElementById('tipMeta');
+
+  // Build rings
+  rings.forEach((r,i) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',0); c.setAttribute('cy',0);
+    c.setAttribute('r', baseR[i]);
+    c.setAttribute('fill','none');
+    c.setAttribute('stroke', 'rgba(91,58,138,0.22)');
+    c.setAttribute('stroke-width', baseSw[i]);
+    c.setAttribute('stroke-linecap','round');
+    c.classList.add('ring-hit');
+    c.dataset.idx = i;
+    c.style.transition = 'stroke 200ms, filter 200ms';
+    gRings.appendChild(c);
+
+    // labels
+    const li = document.createElement('li');
+    li.className = 'group flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/60 cursor-pointer border border-transparent hover:border-[#5B3A8A]/10 transition';
+    li.dataset.idx = i;
+    li.innerHTML = `
+      <span class="w-[10px] h-[10px] rounded-full border border-[#5B3A8A]/30 grid place-items-center">
+        <span class="w-[6px] h-[6px] rounded-full bg-[#5B3A8A]/60 group-hover:bg-[#5B3A8A] transition"></span>
+      </span>
+      <span class="flex-1 text-[12px] md:text-[13px] leading-snug">
+        <span class="block text-neutral-700 group-hover:text-[#3b2a5a]">${r.short}</span>
+        <span class="block text-[10px] text-neutral-500 -mt-0.5 hidden md:block">${r.name.replace(r.short,'').trim()}</span>
+      </span>
+      <span class="text-[10px] text-neutral-400 tabular-nums">${i+1}</span>
+    `;
+    labelList.appendChild(li);
+  });
+
+  const ringEls = Array.from(gRings.querySelectorAll('circle'));
+
+  // Timeline waveforms
+  function buildWave(pathEl, pattern, levels, yBase, amp){
+    const n = pattern.length;
+    let d = '';
+    for(let i=0;i<n;i++){
+      const x0 = i/n*1000;
+      const x1 = (i+1)/n*1000;
+      const v = pattern[i];
+      const norm = (v-1)/(levels-1);
+      const y = yBase - norm*amp;
+      if(i===0) d+=`M ${x0} ${y}`;
+      d+=` L ${x0} ${y} L ${x1} ${y}`;
+    }
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', d);
+    pathEl.appendChild(p);
+  }
+  buildWave(document.getElementById('tl3'), pat3, 3, 26, 16);
+  buildWave(document.getElementById('tl5'), pat5, 5, 26, 16);
+
+  // Interactions
+  function showTip(i, x, y){
+    const r = rings[i];
+    tipTitle.textContent = r.name;
+    tipFreq.textContent = r.freq;
+    const i3 = Math.floor(day/STEP3)%18;
+    const i5 = Math.floor(day/STEP5)%45;
+    const n3 = (pat3[i3]-1)/2, n5=(pat5[i5]-1)/4;
+    const blend = r.w3*n3 + r.w5*n5;
+    tipMeta.textContent = `blend ${(blend*100).toFixed(0)}% • pulse ${blend.toFixed(2)}`;
+    tip.style.left = (x+12)+'px';
+    tip.style.top = (y+12)+'px';
+    tip.style.opacity = '1';
+  }
+  function hideTip(){ tip.style.opacity='0'; }
+
+  ringEls.forEach((c,i)=>{
+    c.addEventListener('pointerenter', (e)=>{ hoverIdx=i; showTip(i, e.clientX, e.clientY); });
+    c.addEventListener('pointermove', (e)=>{ showTip(i, e.clientX, e.clientY); });
+    c.addEventListener('pointerleave', ()=>{ hoverIdx=null; hideTip(); });
+  });
+  labelList.querySelectorAll('li').forEach(li=>{
+    const i = +li.dataset.idx;
+    li.addEventListener('mouseenter',()=>{ hoverIdx=i; });
+    li.addEventListener('mouseleave',()=>{ hoverIdx=null; });
+  });
+
+  // Controls
+  document.getElementById('step455').onclick = ()=>{ day = (day+STEP3) % CYCLE_DAYS; if(day<STEP3) cycle++; updateMeta(); };
+  document.getElementById('step182').onclick = ()=>{ day = (day+STEP5) % CYCLE_DAYS; if(day<STEP5) cycle++; updateMeta(); };
+  const autoBtn = document.getElementById('autoBtn');
+  autoBtn.onclick = ()=>{ auto=!auto; autoBtn.classList.toggle('bg-[#5B3A8A]', auto); autoBtn.classList.toggle('text-[#F8F5F0]', auto); autoBtn.classList.toggle('bg-white/70', !auto); autoBtn.classList.toggle('text-neutral-800', !auto); };
+
+  function updateMeta(){
+    const i3 = Math.floor(day/STEP3)%18;
+    const i5 = Math.floor(day/STEP5)%45;
+    p3v.textContent = pat3[i3];
+    p5v.textContent = pat5[i5];
+    statusEl.textContent = `Chronos practice • Cycle ${cycle} • Day ${Math.floor(day)} of 819`;
+    playhead.style.left = `${(day/CYCLE_DAYS)*100}%`;
+  }
+
+  // Animation
+  let last = performance.now();
+  function tick(now){
+    const dt = Math.min(50, now-last); last=now;
+    if(auto){
+      day += dt * 0.0045; // ~0.27 days per frame ~16 day/sec
+      if(day >= CYCLE_DAYS){ day-=CYCLE_DAYS; cycle++; }
+      updateMeta();
+    }
+
+    const i3 = Math.floor(day/STEP3)%18;
+    const i5 = Math.floor(day/STEP5)%45;
+    const l3 = pat3[i3], l5 = pat5[i5];
+    const n3 = (l3-1)/2, n5 = (l5-1)/4;
+
+    const t = now*0.001;
+
+    ringEls.forEach((c,i)=>{
+      const r = rings[i];
+      const blend = r.w3*n3 + r.w5*n5; // 0..1
+      const breath = 0.5 + 0.5*Math.sin(t*0.6 + i*0.85);
+      const pulse = 0.5 + 0.5*Math.sin(t*0.35 + i*0.4);
+
+      const radius = baseR[i] + (blend*2.2 + breath*1.2) * (1 - i*0.04);
+      const sw = baseSw[i] * (0.85 + blend*0.32 + pulse*0.06);
+      const alpha = 0.14 + blend*0.26 + breath*0.05;
+
+      const isHover = hoverIdx===i;
+      const a = isHover ? Math.min(0.72, alpha+0.28) : alpha;
+      c.setAttribute('r', radius.toFixed(2));
+      c.setAttribute('stroke-width', sw.toFixed(2));
+      c.setAttribute('stroke', `rgba(91,58,138,${a.toFixed(3)})`);
+      if(isHover){ c.setAttribute('filter','url(#softGlow)'); c.setAttribute('stroke-linecap','round'); }
+      else c.removeAttribute('filter');
+    });
+
+    requestAnimationFrame(tick);
+  }
+
+  updateMeta();
+  requestAnimationFrame(tick);
+
+  // Handle resize for tooltip containment
+  window.addEventListener('pointermove', (e)=>{
+    if(tip.style.opacity==='1'){
+      const pad=16;
+      let x=e.clientX+12, y=e.clientY+12;
+      const rect=tip.getBoundingClientRect();
+      if(x+rect.width+pad>window.innerWidth) x = e.clientX - rect.width - 12;
+      if(y+rect.height+pad>window.innerHeight) y = e.clientY - rect.height - 12;
+      tip.style.left = x+'px'; tip.style.top = y+'px';
+    }
+  });
+
+  // Initial auto state styling
+  autoBtn.classList.add('bg-[#5B3A8A]','text-[#F8F5F0]');
+})();
+</script>
+</body>
+</html>
