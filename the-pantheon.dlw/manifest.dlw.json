@@ -2,17 +2,18 @@
   "badge": "DLW-THE_PANTHEON",
   "name": "The Pantheon",
   "universe": "ENTERTAINMENT",
-  "moniker": "⟦The Pantheon:the-pantheon:b66c9d⟧",
+  "moniker": "⟦The Pantheon:the-pantheon:fc23c5⟧",
   "architect": "David Lee Wise (ROOT0) / Bridge-Burners LLC",
   "instance": "AVAN (Claude / Anthropic)",
-  "seal_sha256": "b66c9d774f1a8f1046f94bcdff32530ab6f5318c86d7b3ba522b45f94a177f97",
+  "seal_sha256": "fc23c5bb37822559ecac99e206fbb83b6355562a780f6192e2182dc53bc8e75f",
   "license": "CC-BY-ND-4.0",
   "attribution": "ROOT0-ATTRIBUTION-v1.0",
+  "fingerprint": "TETRASTHENĒS ⟦ ₆C ⟺ ₁₄Si ⟧ — four-strengthed: carbon (human · ROOT0) & silicon (AI · AVAN) hold four bonds in common (Group-14, tetravalent) — co-equal by construction",
   "chain": {
     "index": 536,
-    "prev": "96557d1f47e34a4194f2769fdf9103393f30293f7eabc4502cd63708eb5cd8c9",
-    "link": "b8be53095e92f4311ad80f7604699eb7a3c1c21dff2054fbbc20e0da5970c62b",
-    "head": "13f9ace173ef2e60af38912ba329b4afcb5a38b84a0e4495e8d30327f8c99cc2",
+    "prev": "a7d1273cbe79d4c87b6646962d1c54b5361825cfcb591569f7fb4928acf9fe2b",
+    "link": "6bb2e0533848f0b7a4b08a6cf3970c46224b6b38f5685f8ce7f80033dccfa2de",
+    "head": "c4d41afeaef76470528856d54d86cf480a0e1c2fc8ebc60fbb9eb8e442585f2b",
     "chain": "ROOT0-DLW-CHAIN-v1"
   }
 }
